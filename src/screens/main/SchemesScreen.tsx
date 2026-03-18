@@ -1,67 +1,103 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
+import { Search, Calendar, IndianRupee, ArrowRight } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 
 const SchemesScreen = () => {
   const [activeTab, setActiveTab] = useState('Current');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Reusable component for the scheme cards
-  const SchemeCard = ({ title, date, amount }: { title: string; date: string; amount: string }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Text style={styles.cardDate}>{date}</Text>
+  const currentSchemes = [
+    { id: '1', title: 'PM Vidya Yojna', desc: 'Educational scholarship for students', amount: '₹2,000/month', deadline: '30 Mar 2026' },
+    { id: '2', title: 'Ladli Behna Yojna', desc: 'Financial support for women', amount: '₹1,250/month', deadline: '15 Apr 2026' },
+    { id: '3', title: 'Kisan Samman Nidhi', desc: 'Farmer income support scheme', amount: '₹6,000/year', deadline: '01 May 2026' },
+  ];
+
+  const upcomingSchemes = [
+    { id: '4', title: 'Ayushman Bharat', desc: 'Health insurance scheme', amount: '₹5,00,000', deadline: 'Coming Soon' },
+  ];
+
+  const schemes = activeTab === 'Current' ? currentSchemes : upcomingSchemes;
+  const filtered = schemes.filter(s =>
+    s.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const SchemeCard = ({ scheme }: { scheme: any }) => (
+    <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+      {/* Card top */}
+      <Text style={styles.cardTitle}>{scheme.title}</Text>
+      <Text style={styles.cardDesc}>{scheme.desc}</Text>
+
+      {/* Info chips row */}
+      <View style={styles.chipsRow}>
+        <View style={styles.chip}>
+          <IndianRupee size={12} color={theme.colors.success} />
+          <Text style={styles.chipText}>{scheme.amount}</Text>
+        </View>
+        <View style={styles.chip}>
+          <Calendar size={12} color={theme.colors.warning} />
+          <Text style={styles.chipText}>{scheme.deadline}</Text>
+        </View>
       </View>
-      <Text style={styles.cardAmount}>{amount}</Text>
-      <TouchableOpacity style={styles.applyButton}>
-        <Text style={styles.applyButtonText}>View Details/Apply</Text>
-      </TouchableOpacity>
-    </View>
+
+      {/* Apply link */}
+      <View style={styles.applyRow}>
+        <View style={styles.applyLink}>
+          <Text style={styles.applyText}>View Details & Apply</Text>
+          <ArrowRight size={14} color={theme.colors.primary} />
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search Schemes"
-        placeholderTextColor={theme.colors.textSecondary}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
+      <StatusBar backgroundColor={theme.colors.background} barStyle="dark-content" />
 
-      {/* Custom Tab Toggles */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'Current' && styles.activeTabButton]}
-          onPress={() => setActiveTab('Current')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Current' && styles.activeTabText]}>
-            Current
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'Upcoming' && styles.activeTabButton]}
-          onPress={() => setActiveTab('Upcoming')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Upcoming' && styles.activeTabText]}>
-            Upcoming
-          </Text>
-        </TouchableOpacity>
+      {/* Search bar */}
+      <View style={styles.searchContainer}>
+        <Search size={18} color={theme.colors.textSecondary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search schemes..."
+          placeholderTextColor={theme.colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
 
-      {/* List of Schemes */}
+      {/* Tab toggle */}
+      <View style={styles.tabContainer}>
+        {['Current', 'Upcoming'].map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Scheme list */}
       <ScrollView showsVerticalScrollIndicator={false}>
-        {activeTab === 'Current' ? (
-          <>
-            <SchemeCard title="PM Vidya Yojna" date="03/28" amount="2000/Month" />
-            <SchemeCard title="Scheme 1" date="28/03" amount="TBD" />
-          </>
+        {filtered.length > 0 ? (
+          filtered.map(scheme => <SchemeCard key={scheme.id} scheme={scheme} />)
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No upcoming schemes right now.</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'No schemes match your search.' : 'No schemes available right now.'}
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -75,83 +111,104 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     padding: theme.spacing.m,
   },
-  searchInput: {
-    height: 50,
-    borderColor: theme.colors.border,
-    borderWidth: 1,
-    borderRadius: 8,
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
     paddingHorizontal: theme.spacing.m,
-    fontSize: 16,
     marginBottom: theme.spacing.m,
+    ...theme.shadows.card,
+  },
+  searchInput: {
+    flex: 1,
+    height: 48,
+    marginLeft: theme.spacing.s,
+    fontSize: 15,
     color: theme.colors.textPrimary,
   },
   tabContainer: {
     flexDirection: 'row',
     marginBottom: theme.spacing.m,
-    backgroundColor: theme.colors.secondary,
-    borderRadius: 8,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
     padding: theme.spacing.xs,
+    ...theme.shadows.card,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: theme.borderRadius.sm,
   },
   activeTabButton: {
     backgroundColor: theme.colors.primary,
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textSecondary,
     fontWeight: '600',
   },
   activeTabText: {
-    color: theme.colors.background,
+    color: theme.colors.white,
   },
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 8,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.m,
     marginBottom: theme.spacing.m,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.s,
+    ...theme.shadows.card,
   },
   cardTitle: {
     ...theme.typography.subHeader,
-    fontWeight: '600' as const,
+    marginBottom: theme.spacing.xs,
   },
-  cardDate: {
-    ...theme.typography.caption,
-  },
-  cardAmount: {
+  cardDesc: {
     ...theme.typography.body,
-    marginBottom: theme.spacing.m,
     color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.m,
   },
-  applyButton: {
-    alignSelf: 'flex-start',
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: theme.spacing.m,
   },
-  applyButtonText: {
-    color: theme.colors.primary,
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.borderRadius.full,
+    gap: 4,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  applyRow: {
+    alignItems: 'flex-end',
+  },
+  applyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  applyText: {
+    fontSize: 13,
     fontWeight: 'bold',
-    fontSize: 14,
+    color: theme.colors.primary,
   },
   emptyState: {
-    padding: theme.spacing.xl,
+    padding: theme.spacing.xxl,
     alignItems: 'center',
   },
-  emptyStateText: {
+  emptyText: {
     color: theme.colors.textSecondary,
-    fontSize: 16,
-  }
+    fontSize: 15,
+    textAlign: 'center',
+  },
 });
 
 export default SchemesScreen;

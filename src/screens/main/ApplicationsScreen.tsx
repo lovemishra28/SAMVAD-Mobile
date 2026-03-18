@@ -1,72 +1,107 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
+import { ChevronRight, CheckCircle, Clock } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 
 const ApplicationsScreen = () => {
   const [activeTab, setActiveTab] = useState('Applied');
 
-  // Reusable component for Application cards
-  const ApplicationCard = ({ title, status, date }: { title: string; status: string; date: string }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <View style={[
-          styles.statusBadge, 
-          status === 'Applied' ? styles.statusApplied : styles.statusPending
-        ]}>
-          <Text style={[
-            styles.statusText,
-            status === 'Applied' ? styles.statusTextApplied : styles.statusTextPending
-          ]}>
-            {status}
-          </Text>
+  const appliedItems = [
+    { id: '1', title: 'PM Vidya Yojna', date: '15 March 2026', status: 'Applied' },
+    { id: '2', title: 'Ladli Behna Yojna', date: '12 March 2026', status: 'Applied' },
+  ];
+
+  const pendingItems = [
+    { id: '3', title: 'Kisan Samman Nidhi', date: '10 March 2026', status: 'Pending' },
+  ];
+
+  const items = activeTab === 'Applied' ? appliedItems : pendingItems;
+
+  const ApplicationCard = ({ item }: { item: any }) => {
+    const isApplied = item.status === 'Applied';
+    return (
+      <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+        <View style={styles.cardLeft}>
+          <View
+            style={[
+              styles.iconCircle,
+              { backgroundColor: isApplied ? theme.colors.badgeSuccessBg : theme.colors.badgeWarningBg },
+            ]}
+          >
+            {isApplied ? (
+              <CheckCircle size={20} color={theme.colors.success} />
+            ) : (
+              <Clock size={20} color={theme.colors.warning} />
+            )}
+          </View>
+
+          <View style={styles.cardInfo}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardDate}>{item.date}</Text>
+          </View>
         </View>
-      </View>
-      <Text style={styles.cardDate}>Applied On: {date}</Text>
-    </View>
-  );
+
+        <View style={styles.cardRight}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: isApplied ? theme.colors.badgeSuccessBg : theme.colors.badgeWarningBg },
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusText,
+                { color: isApplied ? theme.colors.success : theme.colors.warning },
+              ]}
+            >
+              {item.status}
+            </Text>
+          </View>
+          <ChevronRight size={18} color={theme.colors.textSecondary} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Custom Tab Toggles */}
+      <StatusBar backgroundColor={theme.colors.background} barStyle="dark-content" />
+
+      {/* Tab toggle */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'Applied' && styles.activeTabButton]}
-          onPress={() => setActiveTab('Applied')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Applied' && styles.activeTabText]}>
-            Applied
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'Pending' && styles.activeTabButton]}
-          onPress={() => setActiveTab('Pending')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Pending' && styles.activeTabText]}>
-            Pending
-          </Text>
-        </TouchableOpacity>
+        {['Applied', 'Pending'].map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+              {tab} Applications
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* List of Applications */}
+      {/* List */}
       <ScrollView showsVerticalScrollIndicator={false}>
-        {activeTab === 'Applied' ? (
-          <>
-            <ApplicationCard 
-              title="PM Vidya Yojna" 
-              status="Applied" 
-              date="15 March" 
-            />
-            <ApplicationCard 
-              title="Ladli Behna Yojna" 
-              status="Applied" 
-              date="12 March" 
-            />
-          </>
+        {items.length > 0 ? (
+          items.map(item => <ApplicationCard key={item.id} item={item} />)
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>You have no pending applications.</Text>
+            <Clock size={48} color={theme.colors.border} />
+            <Text style={styles.emptyTitle}>No {activeTab} Applications</Text>
+            <Text style={styles.emptySubtitle}>
+              {activeTab === 'Applied'
+                ? 'You haven\'t applied to any schemes yet.'
+                : 'All your applications are up to date!'}
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -83,81 +118,92 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     marginBottom: theme.spacing.m,
-    backgroundColor: theme.colors.secondary,
-    borderRadius: 8,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
     padding: theme.spacing.xs,
+    ...theme.shadows.card,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: theme.borderRadius.sm,
   },
   activeTabButton: {
     backgroundColor: theme.colors.primary,
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 14,
     color: theme.colors.textSecondary,
     fontWeight: '600',
   },
   activeTabText: {
-    color: theme.colors.background,
+    color: theme.colors.white,
   },
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 8,
-    padding: theme.spacing.m,
-    marginBottom: theme.spacing.m,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    elevation: 2,
-  },
-  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.m,
     marginBottom: theme.spacing.m,
+    ...theme.shadows.card,
+  },
+  cardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.m,
+  },
+  cardInfo: {
+    flex: 1,
   },
   cardTitle: {
-    ...theme.typography.subHeader,
-    fontWeight: '600' as const,
-    flex: 1,
-    marginRight: theme.spacing.s,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusApplied: {
-    backgroundColor: '#E8F5E9', // Light green background
-  },
-  statusPending: {
-    backgroundColor: '#FFF3E0', // Light orange background
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  statusTextApplied: {
-    color: theme.colors.success,
-  },
-  statusTextPending: {
-    color: '#FF9800', // Orange text
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
   },
   cardDate: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
+    ...theme.typography.caption,
+  },
+  cardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   emptyState: {
-    padding: theme.spacing.xl,
     alignItems: 'center',
+    paddingTop: theme.spacing.xxl * 2,
   },
-  emptyStateText: {
+  emptyTitle: {
+    ...theme.typography.subHeader,
+    marginTop: theme.spacing.m,
+    marginBottom: theme.spacing.xs,
+  },
+  emptySubtitle: {
+    ...theme.typography.body,
     color: theme.colors.textSecondary,
-    fontSize: 16,
-  }
+    textAlign: 'center',
+    paddingHorizontal: theme.spacing.xl,
+  },
 });
 
 export default ApplicationsScreen;
