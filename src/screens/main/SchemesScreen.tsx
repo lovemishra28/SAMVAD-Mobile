@@ -9,10 +9,14 @@ import {
   StatusBar,
 } from 'react-native';
 import { Search, Calendar, IndianRupee, ArrowRight } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../theme/theme';
 import SegmentedTabContainer from '../../components/SegmentedTabContainer';
+import HeaderContainer from '../../components/HeaderContainer';
+import HeroContainer from '../../components/HeroContainer';
 
 const SchemesScreen = () => {
+  const navigation = useNavigation<any>();
   const [activeTab, setActiveTab] = useState('Current');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -31,8 +35,12 @@ const SchemesScreen = () => {
     s.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  const openSchemeDetails = (scheme: any) => {
+    navigation.navigate('SchemeDetails', { scheme });
+  };
+
   const SchemeCard = ({ scheme }: { scheme: any }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+    <View style={styles.card}>
       {/* Card top */}
       <Text style={styles.cardTitle}>{scheme.title}</Text>
       <Text style={styles.cardDesc}>{scheme.desc}</Text>
@@ -52,23 +60,25 @@ const SchemesScreen = () => {
 
       {/* Apply link */}
       <View style={styles.applyRow}>
-        <View style={styles.applyLink}>
+        <TouchableOpacity
+          style={styles.applyLink}
+          activeOpacity={0.75}
+          onPress={() => openSchemeDetails(scheme)}
+        >
           <Text style={styles.applyText}>View Details & Apply</Text>
           <ArrowRight size={14} color={theme.colors.primary} />
-        </View>
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor={theme.colors.background} barStyle="dark-content" />
+      <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Schemes</Text>
-      </View>
+      <HeaderContainer title="Schemes" />
 
-      <View style={styles.heroContainer}>
+      <HeroContainer>
         {/* Search bar */}
         <View style={styles.searchContainer}>
           <TextInput
@@ -106,7 +116,7 @@ const SchemesScreen = () => {
             </View>
           )}
         </ScrollView>
-      </View>
+      </HeroContainer>
     </View>
   );
 };
@@ -115,44 +125,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.m,
-    paddingTop: theme.spacing.m,
-  },
-  headerContainer: {
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 120,
-    marginTop: -theme.spacing.l,
-    marginBottom: 0,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.m,
-    zIndex: 1, 
-  },
-  headerTitle: {
-    color: theme.colors.white,
-    fontSize: 40,
-    fontWeight: '800',
-    lineHeight: 48,
-  },
-  heroContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    marginTop: -20,
-    marginBottom: 0,
-    paddingTop: theme.spacing.m,
-    paddingHorizontal: theme.spacing.m,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    overflow: 'hidden',
-    zIndex: 2,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
   },
   heroScroll: {
     flex: 1,

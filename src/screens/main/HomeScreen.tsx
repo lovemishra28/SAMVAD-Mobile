@@ -8,9 +8,12 @@ import {
   StatusBar,
 } from 'react-native';
 import { Bell, ArrowRight, TrendingUp, ClipboardList, Clock, MessageCircle } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../theme/theme';
 
 const HomeScreen = () => {
+  const navigation = useNavigation<any>();
+
   // Quick stat data
   const stats = [
     { icon: TrendingUp, label: 'Active Schemes', value: '12', color: theme.colors.primary },
@@ -28,6 +31,13 @@ const HomeScreen = () => {
   const handleHelpPress = () => {
     console.log('Help button pressed');
     // Add navigation or modal logic here
+  };
+
+  const handleOpenScheme = (scheme: any) => {
+    const normalizedScheme =
+      scheme.title === 'Ladli Behna Yojana' ? { ...scheme, title: 'Ladli Behna Yojna' } : scheme;
+
+    navigation.navigate('SchemeDetails', { scheme: normalizedScheme });
   };
 
   return (
@@ -69,7 +79,10 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Recommended for You</Text>
 
         {recommendations.map(scheme => (
-          <TouchableOpacity key={scheme.id} style={styles.schemeCard} activeOpacity={0.8}>
+          <View
+            key={scheme.id}
+            style={styles.schemeCard}
+          >
             <View style={styles.schemeTopRow}>
               <View style={[styles.badgeChip, { backgroundColor: scheme.badgeBg }]}>
                 <Text style={[styles.badgeText, { color: scheme.badgeColor }]}>{scheme.badge}</Text>
@@ -89,12 +102,16 @@ const HomeScreen = () => {
                 <Text style={styles.deadlineText}>Deadline:</Text>
                 <Text style={styles.deadlineDateText}>{scheme.deadline}</Text>
               </View>
-              <View style={styles.applyLink}>
+              <TouchableOpacity
+                style={styles.applyLink}
+                activeOpacity={0.75}
+                onPress={() => handleOpenScheme(scheme)}
+              >
                 <Text style={styles.applyLinkText}>View & Apply</Text>
                 <ArrowRight size={14} color={theme.colors.primary} />
-              </View>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         ))}
       </View>
 
