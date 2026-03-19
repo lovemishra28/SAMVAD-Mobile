@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { ChevronRight, CheckCircle, Clock } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
+import SegmentedTabContainer from '../../components/SegmentedTabContainer';
 
 const ApplicationsScreen = () => {
   const [activeTab, setActiveTab] = useState('Applied');
@@ -74,20 +75,16 @@ const ApplicationsScreen = () => {
     <View style={styles.container}>
       <StatusBar backgroundColor={theme.colors.background} barStyle="dark-content" />
 
-      {/* Tab toggle */}
-      <View style={styles.tabContainer}>
-        {['Applied', 'Pending'].map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-              {tab} Applications
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Applications</Text>
       </View>
+
+      {/* Tab toggle */}
+      <SegmentedTabContainer
+        tabs={['Applied', 'Pending']}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
       {/* List */}
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -115,30 +112,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     padding: theme.spacing.m,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    marginBottom: theme.spacing.m,
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.xs,
-    ...theme.shadows.card,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: theme.borderRadius.sm,
-  },
-  activeTabButton: {
+  headerContainer: {
     backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 84,
+    marginBottom: theme.spacing.m,
   },
-  tabText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  activeTabText: {
+  headerTitle: {
     color: theme.colors.white,
+    fontSize: 34,
+    fontWeight: '700',
+    lineHeight: 40,
+    letterSpacing: 0.2,
   },
   card: {
     flexDirection: 'row',

@@ -10,19 +10,20 @@ import {
 } from 'react-native';
 import { Search, Calendar, IndianRupee, ArrowRight } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
+import SegmentedTabContainer from '../../components/SegmentedTabContainer';
 
 const SchemesScreen = () => {
   const [activeTab, setActiveTab] = useState('Current');
   const [searchQuery, setSearchQuery] = useState('');
 
   const currentSchemes = [
-    { id: '1', title: 'PM Vidya Yojna', desc: 'Educational scholarship for students', amount: '₹2,000/month', deadline: '30 Mar 2026' },
-    { id: '2', title: 'Ladli Behna Yojna', desc: 'Financial support for women', amount: '₹1,250/month', deadline: '15 Apr 2026' },
-    { id: '3', title: 'Kisan Samman Nidhi', desc: 'Farmer income support scheme', amount: '₹6,000/year', deadline: '01 May 2026' },
+    { id: '1', title: 'PM Vidya Yojna', desc: 'Educational scholarship for students', amount: '2,000/month', deadline: '30 Mar 2026' },
+    { id: '2', title: 'Ladli Behna Yojna', desc: 'Financial support for women', amount: '1,250/month', deadline: '15 Apr 2026' },
+    { id: '3', title: 'Kisan Samman Nidhi', desc: 'Farmer income support scheme', amount: '6,000/year', deadline: '01 May 2026' },
   ];
 
   const upcomingSchemes = [
-    { id: '4', title: 'Ayushman Bharat', desc: 'Health insurance scheme', amount: '₹5,00,000', deadline: 'Coming Soon' },
+    { id: '4', title: 'Ayushman Bharat', desc: 'Health insurance scheme', amount: '5,00,000', deadline: 'Coming Soon' },
   ];
 
   const schemes = activeTab === 'Current' ? currentSchemes : upcomingSchemes;
@@ -42,9 +43,10 @@ const SchemesScreen = () => {
           <IndianRupee size={12} color={theme.colors.success} />
           <Text style={styles.chipText}>{scheme.amount}</Text>
         </View>
-        <View style={styles.chip}>
+        <View style={[styles.chip, styles.deadlineChip]}>
           <Calendar size={12} color={theme.colors.warning} />
-          <Text style={styles.chipText}>{scheme.deadline}</Text>
+          <Text style={styles.deadlineLabel}>Deadline</Text>
+          <Text style={styles.deadlineValue}>{scheme.deadline}</Text>
         </View>
       </View>
 
@@ -62,45 +64,49 @@ const SchemesScreen = () => {
     <View style={styles.container}>
       <StatusBar backgroundColor={theme.colors.background} barStyle="dark-content" />
 
-      {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <Search size={18} color={theme.colors.textSecondary} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search schemes..."
-          placeholderTextColor={theme.colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Schemes</Text>
       </View>
 
-      {/* Tab toggle */}
-      <View style={styles.tabContainer}>
-        {['Current', 'Upcoming'].map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-              {tab}
-            </Text>
+      <View style={styles.heroContainer}>
+        {/* Search bar */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search Schemes"
+            placeholderTextColor={theme.colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          <TouchableOpacity style={styles.searchButton} activeOpacity={0.8}>
+            <Search size={17} color={theme.colors.textPrimary} strokeWidth={2.1} />
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
 
-      {/* Scheme list */}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {filtered.length > 0 ? (
-          filtered.map(scheme => <SchemeCard key={scheme.id} scheme={scheme} />)
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
-              {searchQuery ? 'No schemes match your search.' : 'No schemes available right now.'}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+        {/* Tab toggle */}
+        <SegmentedTabContainer
+          tabs={['Current', 'Upcoming']}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+
+        {/* Scheme list */}
+        <ScrollView
+          style={styles.heroScroll}
+          contentContainerStyle={styles.heroScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {filtered.length > 0 ? (
+            filtered.map(scheme => <SchemeCard key={scheme.id} scheme={scheme} />)
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'No schemes match your search.' : 'No schemes available right now.'}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
     </View>
   );
 };
@@ -109,48 +115,80 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.m,
+    paddingTop: theme.spacing.m,
+  },
+  headerContainer: {
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+    marginTop: -theme.spacing.l,
+    marginBottom: 0,
+    borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.m,
+    zIndex: 1, 
+  },
+  headerTitle: {
+    color: theme.colors.white,
+    fontSize: 40,
+    fontWeight: '800',
+    lineHeight: 48,
+  },
+  heroContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    marginTop: -20,
+    marginBottom: 0,
+    paddingTop: theme.spacing.m,
+    paddingHorizontal: theme.spacing.m,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: 'hidden',
+    zIndex: 2,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+  },
+  heroScroll: {
+    flex: 1,
+  },
+  heroScrollContent: {
+    paddingBottom: theme.spacing.m,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.m,
+    backgroundColor: '#B7DBE8',
+    borderRadius: 16,
+    paddingLeft: 12,
+    paddingRight: 7,
+    minHeight: 54,
     marginBottom: theme.spacing.m,
-    ...theme.shadows.card,
   },
   searchInput: {
     flex: 1,
-    height: 48,
-    marginLeft: theme.spacing.s,
+    height: 40,
     fontSize: 15,
+    lineHeight: 20,
     color: theme.colors.textPrimary,
+    fontWeight: '500',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    marginBottom: theme.spacing.m,
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.xs,
-    ...theme.shadows.card,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
+  searchButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.textPrimary,
     alignItems: 'center',
-    borderRadius: theme.borderRadius.sm,
-  },
-  activeTabButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  tabText: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  activeTabText: {
-    color: theme.colors.white,
+    justifyContent: 'center',
+    backgroundColor: '#B7DBE8',
   },
   card: {
     backgroundColor: theme.colors.white,
@@ -183,6 +221,23 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  deadlineChip: {
+    backgroundColor: '#FFF6EA',
+    borderWidth: 1,
+    borderColor: '#FFE1B3',
+  },
+  deadlineLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#A56500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  deadlineValue: {
     fontSize: 12,
     fontWeight: '600',
     color: theme.colors.textPrimary,
