@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
-import { Bell, ArrowRight, TrendingUp, ClipboardList, Clock } from 'lucide-react-native';
+import { Bell, ArrowRight, TrendingUp, ClipboardList, Clock, MessageCircle } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 
 const HomeScreen = () => {
@@ -20,19 +20,31 @@ const HomeScreen = () => {
 
   // Mock scheme recommendations
   const recommendations = [
-    { id: '1', title: 'PM Vidya Yojna', benefit: '₹2,000/month', deadline: '30 Mar 2026' },
-    { id: '2', title: 'Ladli Behna Yojna', benefit: '₹1,250/month', deadline: '15 Apr 2026' },
-    { id: '3', title: 'Kisan Samman Nidhi', benefit: '₹6,000/year', deadline: '01 May 2026' },
+    { id: '1', title: 'PM Vidya Yojna', benefit: '₹2,000/month', daysLeft: 5, deadline: '30 Mar 2026', badge: 'Trending', badgeColor: '#f7dcca', badgeBg:  '#f28d4a'},
+    { id: '2', title: 'Ladli Behna Yojana', benefit: '₹1,250/month', daysLeft: 19, deadline: '15 Apr 2026', badge: 'NEW', badgeColor:'#E1FCE0'  , badgeBg: '#51CF66'},
+    { id: '3', title: 'Kisan Samman Nidhi', benefit: '₹6,000/year', daysLeft: 35, deadline: '01 May 2026', badge: 'Closing Soon', badgeColor: '#FFE8CC', badgeBg: '#FF9F43' },
   ];
 
+  const handleHelpPress = () => {
+    console.log('Help button pressed');
+    // Add navigation or modal logic here
+  };
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.mainContainer}>
       <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
 
       {/* Header bar */}
       <View style={styles.headerBar}>
-        <View>
-          <Text style={styles.headerBrand}>SAMVAD</Text>
+        <View style={styles.headerSideSpacer} />
+        <View style={styles.headerCenterContent}>
+          <Text style={styles.headerWelcome}>WELCOME!</Text>
+          <Text style={styles.headerName}>Ramesh Ji</Text>
         </View>
         <TouchableOpacity style={styles.bellContainer}>
           <Bell size={22} color={theme.colors.white} />
@@ -42,9 +54,11 @@ const HomeScreen = () => {
       <View style={styles.body}>
         {/* Quick Stats Row */}
         <View style={styles.statsRow}>
-          {stats.map((stat, index) => (
-            <View key={index} style={[styles.statCard, { borderTopColor: stat.color }]}>
-              <stat.icon size={20} color={stat.color} />
+          {stats.map(stat => (
+            <View key={stat.label} style={[styles.statCard, { borderTopColor: stat.color }]}>
+              <View style={[styles.statIconWrap, { backgroundColor: `${stat.color}1A` }]}>
+                <stat.icon size={18} color={stat.color} />
+              </View>
               <Text style={styles.statValue}>{stat.value}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
             </View>
@@ -55,15 +69,26 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Recommended for You</Text>
 
         {recommendations.map(scheme => (
-          <TouchableOpacity key={scheme.id} style={styles.schemeCard} activeOpacity={0.7}>
-            <View style={styles.schemeCardTop}>
-              <Text style={styles.schemeName}>{scheme.title}</Text>
+          <TouchableOpacity key={scheme.id} style={styles.schemeCard} activeOpacity={0.8}>
+            <View style={styles.schemeTopRow}>
+              <View style={[styles.badgeChip, { backgroundColor: scheme.badgeBg }]}>
+                <Text style={[styles.badgeText, { color: scheme.badgeColor }]}>{scheme.badge}</Text>
+              </View>
               <View style={styles.benefitBadge}>
                 <Text style={styles.benefitText}>{scheme.benefit}</Text>
               </View>
             </View>
+
+            <Text style={styles.schemeName}>{scheme.title}</Text>
+
             <View style={styles.schemeCardBottom}>
-              <Text style={styles.deadlineText}>Deadline: {scheme.deadline}</Text>
+              <View style={styles.deadlineWrap}>
+                <Clock size={13} color={theme.colors.textSecondary} />
+                <Text style={styles.daysLeftText}>{scheme.daysLeft} days left</Text>
+                <Text style={styles.dotText}>•</Text>
+                <Text style={styles.deadlineText}>Deadline:</Text>
+                <Text style={styles.deadlineDateText}>{scheme.deadline}</Text>
+              </View>
               <View style={styles.applyLink}>
                 <Text style={styles.applyLinkText}>View & Apply</Text>
                 <ArrowRight size={14} color={theme.colors.primary} />
@@ -72,14 +97,27 @@ const HomeScreen = () => {
           </TouchableOpacity>
         ))}
       </View>
-    </ScrollView>
+
+      </ScrollView>
+
+      <TouchableOpacity style={styles.helpButton} activeOpacity={0.85} onPress={handleHelpPress}>
+        <MessageCircle size={20} color={theme.colors.white} />
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    paddingBottom: 96,
   },
   headerBar: {
     backgroundColor: theme.colors.primary,
@@ -87,57 +125,87 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.l,
-    paddingTop: theme.spacing.xl,
-    paddingBottom: theme.spacing.l,
+    paddingTop: theme.spacing.l,
+    paddingBottom: theme.spacing.xl,
   },
-  headerBrand: {
-    fontSize: 22,
-    fontWeight: 'bold',
+  headerCenterContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerWelcome: {
+    fontSize: 30,
+    fontWeight: '800',
     color: theme.colors.white,
-    letterSpacing: 2,
+    letterSpacing: 0.8,
+    textAlign: 'center',
   },
-  headerGreeting: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
+  headerName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.92)',
     marginTop: 2,
+    textAlign: 'center',
+  },
+  headerSideSpacer: {
+    width: 44,
+    height: 44,
   },
   bellContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   body: {
     padding: theme.spacing.m,
+    marginTop: -12,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    backgroundColor: theme.colors.background,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: theme.spacing.l,
-    marginTop: theme.spacing.s,
-    gap: 10,
+    marginTop: theme.spacing.xs,
+    gap: 12,
   },
   statCard: {
     flex: 1,
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.m,
+    minHeight: 110,
+    paddingVertical: theme.spacing.m,
+    paddingHorizontal: theme.spacing.s,
     alignItems: 'center',
     borderTopWidth: 3,
+    borderWidth: 1,
+    borderColor: '#E8EAF1',
     ...theme.shadows.card,
   },
+  statIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
   statValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 30,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginTop: theme.spacing.xs,
+    lineHeight: 34,
   },
   statLabel: {
-    ...theme.typography.micro,
-    marginTop: 2,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
     textAlign: 'center',
+    fontWeight: '500',
   },
   sectionTitle: {
     ...theme.typography.subHeader,
@@ -145,40 +213,78 @@ const styles = StyleSheet.create({
   },
   schemeCard: {
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.m,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     marginBottom: theme.spacing.m,
+    borderWidth: 1,
+    borderColor: '#EDEFFA',
     ...theme.shadows.card,
   },
-  schemeCardTop: {
+  schemeTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.m,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  badgeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   schemeName: {
-    ...theme.typography.subHeader,
-    flex: 1,
-    marginRight: theme.spacing.s,
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
   },
   benefitBadge: {
-    backgroundColor: theme.colors.badgeSuccessBg,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: theme.borderRadius.full,
+    backgroundColor: '#E9F8EC',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
   },
   benefitText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: theme.colors.success,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2B9D5A',
   },
   schemeCardBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  deadlineWrap: {
+    flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    flex: 1,
+  },
+  daysLeftText: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  dotText: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    marginHorizontal: 6,
   },
   deadlineText: {
     ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  deadlineDateText: {
+    ...theme.typography.caption,
+    color: '#7B8299',
+    marginLeft: 4,
   },
   applyLink: {
     flexDirection: 'row',
@@ -186,9 +292,25 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   applyLinkText: {
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: theme.colors.primary,
+  },
+  helpButton: {
+    position: 'absolute',
+    right: 18,
+    bottom: 18,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#3E96E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#245D93',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
 
