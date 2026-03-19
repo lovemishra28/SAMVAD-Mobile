@@ -30,7 +30,20 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     { icon: Phone, label: 'Phone', value: '+91 7668678890' },
   ];
 
-  const InfoRow = ({ icon: Icon, label, value }: { icon: any; label: string; value: string }) => (
+  const documents = [
+    { label: 'Aadhaar', status: true },
+    { label: 'Income Certificate', status: false },
+  ];
+
+  const InfoRow = ({
+    icon: Icon,
+    label,
+    value,
+  }: {
+    icon: any;
+    label: string;
+    value: string;
+  }) => (
     <View style={styles.infoRow}>
       <View style={styles.infoLeft}>
         <View style={styles.infoIconCircle}>
@@ -66,19 +79,20 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
-      {/* Header with avatar */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
           <User size={40} color={theme.colors.primary} />
         </View>
         <Text style={styles.name}>Ramesh Kumar</Text>
         <Text style={styles.phone}>+91 7668678890</Text>
+        <Text style={styles.meta}>Booth 21 • Rampur</Text>
       </View>
 
       <View style={styles.body}>
-        {/* Profile info card */}
+        {/* Personal Info */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoCardTitle}>Personal Information</Text>
+          <Text style={styles.infoCardTitle}>Your Details</Text>
           {profileInfo.map((item, index) => (
             <React.Fragment key={item.label}>
               <InfoRow icon={item.icon} label={item.label} value={item.value} />
@@ -87,9 +101,37 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
           ))}
         </View>
 
-        {/* Action buttons */}
+        {/* Documents */}
+        <View style={styles.infoCard}>
+          <Text style={styles.infoCardTitle}>Documents</Text>
+
+          {documents.map((doc, index) => (
+            <React.Fragment key={doc.label}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{doc.label}</Text>
+                <Text
+                  style={{
+                    color: doc.status ? '#22C55E' : '#EF4444',
+                    fontWeight: '600',
+                  }}
+                >
+                  {doc.status ? 'Available' : 'Missing'}
+                </Text>
+              </View>
+              {index < documents.length - 1 && <View style={styles.divider} />}
+            </React.Fragment>
+          ))}
+
+          <TouchableOpacity style={styles.uploadBtn}>
+            <Text style={styles.uploadText}>Upload Documents</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Actions */}
         <View style={styles.actionsCard}>
           <ActionButton icon={Edit3} label="Edit Profile" color={theme.colors.primary} />
+          <View style={styles.divider} />
+          <ActionButton icon={HelpCircle} label="Change Language" color={theme.colors.primary} />
           <View style={styles.divider} />
           <ActionButton icon={HelpCircle} label="Help & Support" color={theme.colors.primary} />
           <View style={styles.divider} />
@@ -110,12 +152,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+
   header: {
     backgroundColor: theme.colors.primary,
     alignItems: 'center',
     paddingTop: theme.spacing.xl,
-    paddingBottom: theme.spacing.xl + 10,
+    paddingBottom: theme.spacing.xl + 20,
   },
+
   avatar: {
     width: 80,
     height: 80,
@@ -125,80 +169,114 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.m,
   },
+
   name: {
     fontSize: 22,
     fontWeight: 'bold',
     color: theme.colors.white,
   },
+
   phone: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     marginTop: theme.spacing.xs,
   },
+
+  meta: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+
   body: {
     padding: theme.spacing.m,
     marginTop: -theme.spacing.m,
   },
+
   infoCard: {
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: theme.spacing.m,
     marginBottom: theme.spacing.m,
     ...theme.shadows.card,
   },
+
   infoCardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.m,
   },
+
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: theme.spacing.s,
   },
+
   infoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   infoIconCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#E6F6FB',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.m,
   },
+
   infoLabel: {
     ...theme.typography.label,
   },
+
   infoValue: {
     ...theme.typography.body,
     fontWeight: '600',
   },
+
   divider: {
     height: 1,
     backgroundColor: theme.colors.border,
   },
+
+  uploadBtn: {
+    marginTop: 12,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  uploadText: {
+    color: theme.colors.white,
+    fontWeight: '600',
+  },
+
   actionsCard: {
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: theme.spacing.m,
     ...theme.shadows.card,
   },
+
   actionButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: theme.spacing.m,
   },
+
   actionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
+
   actionLabel: {
     fontSize: 15,
     fontWeight: '600',
