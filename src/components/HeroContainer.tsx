@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     marginTop: -12,
     paddingTop: theme.spacing.m,
-    paddingHorizontal: theme.spacing.m,
+    paddingHorizontal: 0,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     overflow: 'hidden',
