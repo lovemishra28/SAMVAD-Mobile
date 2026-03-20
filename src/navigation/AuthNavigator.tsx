@@ -4,6 +4,7 @@ import StarterScreen from '../screens/auth/StarterScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import VerifyScreen from '../screens/auth/VerifyScreen';
 import MainTabNavigator from './MainTabNavigator';
+import SchemeDetailsScreen from '../screens/main/SchemeDetailsScreen';
 
 const Stack = createStackNavigator();
 
@@ -17,6 +18,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="MainApp" component={MainTabNavigator} />
+      <Stack.Screen name="SchemeDetails" component={SchemeDetailsScreen} />
     </Stack.Navigator>
   );
 };
