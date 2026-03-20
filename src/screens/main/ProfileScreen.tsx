@@ -18,10 +18,13 @@ import {
   HelpCircle,
   LogOut,
   ChevronRight,
+  MessageCircle,
 } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 
 const ProfileScreen = ({ navigation }: { navigation: any }) => {
+  const isProfileComplete = false;
+
   const profileInfo = [
     { icon: CreditCard, label: 'Aadhaar', value: '**** **** 1234' },
     { icon: MapPin, label: 'Village', value: 'Rampur' },
@@ -30,7 +33,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     { icon: Phone, label: 'Phone', value: '+91 7668678890' },
   ];
 
-  const InfoRow = ({ icon: Icon, label, value }: { icon: any; label: string; value: string }) => (
+  const InfoRow = ({ icon: Icon, label, value }: any) => (
     <View style={styles.infoRow}>
       <View style={styles.infoLeft}>
         <View style={styles.infoIconCircle}>
@@ -42,18 +45,8 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     </View>
   );
 
-  const ActionButton = ({
-    icon: Icon,
-    label,
-    color,
-    onPress,
-  }: {
-    icon: any;
-    label: string;
-    color: string;
-    onPress?: () => void;
-  }) => (
-    <TouchableOpacity style={styles.actionButton} onPress={onPress} activeOpacity={0.7}>
+  const ActionButton = ({ icon: Icon, label, color, onPress }: any) => (
+    <TouchableOpacity style={styles.actionButton} onPress={onPress}>
       <View style={styles.actionLeft}>
         <Icon size={18} color={color} />
         <Text style={[styles.actionLabel, { color }]}>{label}</Text>
@@ -66,19 +59,43 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
-      {/* Header with avatar */}
+      {/* HEADER */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <User size={40} color={theme.colors.primary} />
+        <View style={styles.avatarWrapper}>
+          <View style={styles.avatar}>
+            <User size={40} color={theme.colors.primary} />
+          </View>
+
+          <TouchableOpacity style={styles.editIcon}>
+            <Edit3 size={14} color={theme.colors.white} />
+          </TouchableOpacity>
         </View>
+
         <Text style={styles.name}>Ramesh Kumar</Text>
         <Text style={styles.phone}>+91 7668678890</Text>
+        <Text style={styles.booth}>Booth 21 • Rampur</Text>
       </View>
 
+      {/* BODY */}
       <View style={styles.body}>
-        {/* Profile info card */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoCardTitle}>Personal Information</Text>
+
+        {/* COMPLETE PROFILE (SCHEME STYLE CARD) */}
+        {!isProfileComplete && (
+          <TouchableOpacity style={styles.highlightCard}>
+            <Text style={styles.cardTitle}>Complete Your Profile</Text>
+            <Text style={styles.cardDesc}>
+              Add missing details to unlock all schemes
+            </Text>
+
+            <View style={styles.applyRow}>
+              <Text style={styles.applyText}>Complete Now</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* INFO CARD */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Your Details</Text>
           {profileInfo.map((item, index) => (
             <React.Fragment key={item.label}>
               <InfoRow icon={item.icon} label={item.label} value={item.value} />
@@ -87,10 +104,23 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
           ))}
         </View>
 
-        {/* Action buttons */}
-        <View style={styles.actionsCard}>
-          <ActionButton icon={Edit3} label="Edit Profile" color={theme.colors.primary} />
-          <View style={styles.divider} />
+        {/* 🔥 BIG FEEDBACK CARD (LIKE SCHEME CARD) */}
+        <TouchableOpacity style={styles.card}>
+          <Text style={styles.cardTitle}>Give Feedback</Text>
+          <Text style={styles.cardDesc}>
+            Share your experience with schemes and help improve services
+          </Text>
+
+          <View style={styles.applyRow}>
+            <View style={styles.applyLink}>
+              <MessageCircle size={14} color={theme.colors.primary} />
+              <Text style={styles.applyText}>Send Feedback</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* ACTIONS */}
+        <View style={styles.card}>
           <ActionButton icon={HelpCircle} label="Help & Support" color={theme.colors.primary} />
           <View style={styles.divider} />
           <ActionButton
@@ -100,6 +130,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
             onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Starter' }] })}
           />
         </View>
+
       </View>
     </ScrollView>
   );
@@ -110,12 +141,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+
+  /* HEADER */
   header: {
     backgroundColor: theme.colors.primary,
     alignItems: 'center',
     paddingTop: theme.spacing.xl,
     paddingBottom: theme.spacing.xl + 10,
   },
+
+  avatarWrapper: {
+    position: 'relative',
+  },
+
   avatar: {
     width: 80,
     height: 80,
@@ -125,43 +163,90 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.m,
   },
+
+  editIcon: {
+    position: 'absolute',
+    right: -4,
+    bottom: 10,
+    backgroundColor: theme.colors.primary,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   name: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.white,
   },
+
   phone: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
-    marginTop: theme.spacing.xs,
+    marginTop: 2,
   },
+
+  booth: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+
+  /* BODY */
   body: {
     padding: theme.spacing.m,
-    marginTop: -theme.spacing.m,
+    marginTop: -12,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    backgroundColor: theme.colors.background,
   },
-  infoCard: {
+
+  /* CARD (MATCH SCHEMES) */
+  card: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.m,
     marginBottom: theme.spacing.m,
     ...theme.shadows.card,
   },
-  infoCardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
+
+  highlightCard: {
+    backgroundColor: '#E6F6FB',
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.m,
     marginBottom: theme.spacing.m,
   },
+
+  sectionTitle: {
+    ...theme.typography.subHeader,
+    marginBottom: theme.spacing.m,
+  },
+
+  cardTitle: {
+    ...theme.typography.subHeader,
+    marginBottom: theme.spacing.xs,
+  },
+
+  cardDesc: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.m,
+  },
+
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: theme.spacing.s,
   },
+
   infoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   infoIconCircle: {
     width: 32,
     height: 32,
@@ -171,37 +256,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: theme.spacing.m,
   },
+
   infoLabel: {
     ...theme.typography.label,
   },
+
   infoValue: {
     ...theme.typography.body,
     fontWeight: '600',
   },
+
   divider: {
     height: 1,
     backgroundColor: theme.colors.border,
   },
-  actionsCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.m,
-    ...theme.shadows.card,
-  },
+
+  /* ACTION BUTTON */
   actionButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: theme.spacing.m,
   },
+
   actionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
+
   actionLabel: {
     fontSize: 15,
     fontWeight: '600',
+  },
+
+  /* CTA LIKE SCHEME */
+  applyRow: {
+    alignItems: 'flex-end',
+  },
+
+  applyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  applyText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
   },
 });
 
