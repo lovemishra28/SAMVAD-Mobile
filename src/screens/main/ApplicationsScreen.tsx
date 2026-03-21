@@ -9,12 +9,14 @@ import {
   StatusBar,
 } from 'react-native';
 import { Search, ChevronRight } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../theme/theme';
 import SegmentedTabContainer from '../../components/SegmentedTabContainer';
 import HeaderContainer from '../../components/HeaderContainer';
 import HeroContainer from '../../components/HeroContainer';
 
 const ApplicationsScreen = () => {
+  const navigation = useNavigation<any>();
   const [activeTab, setActiveTab] = useState('Applied');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -59,6 +61,13 @@ const ApplicationsScreen = () => {
   const filtered = data.filter(item =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  const openSchemeDetails = (scheme: any) => {
+    const normalizedScheme =
+      scheme.title === 'Ladli Behna Yojna' ? { ...scheme, title: 'Ladli Behna Yojna' } : scheme;
+
+    navigation.navigate('SchemeDetails', { scheme: normalizedScheme });
+  };
 
   const ApplicationCard = ({ item }: { item: any }) => {
     const isApplied = activeTab === 'Applied';
@@ -109,9 +118,15 @@ const ApplicationsScreen = () => {
         </View>
 
         <View style={styles.applyRow}>
-          <Text style={styles.applyText}>
-            {isApplied ? 'View Details' : 'View & Apply'}
-          </Text>
+          <TouchableOpacity
+            style={styles.applyLink}
+            activeOpacity={0.75}
+            onPress={() => openSchemeDetails(item)}
+          >
+            <Text style={styles.applyText}>
+              {isApplied ? 'View Details' : 'View & Apply'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -300,6 +315,10 @@ const styles = StyleSheet.create({
 
   applyRow: {
     alignItems: 'flex-end',
+  },
+
+  applyLink: {
+    paddingVertical: 2,
   },
 
   applyText: {
