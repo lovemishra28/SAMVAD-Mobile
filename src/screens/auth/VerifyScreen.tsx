@@ -93,7 +93,7 @@ const VerifyScreen = ({ navigation }: { navigation: any }) => {
 
         <TouchableOpacity
           style={[styles.button, !isOtpComplete && styles.buttonDisabled]}
-          onPress={() => navigation.navigate('MainApp')}
+          onPress={() => navigation.replace('OnboardingOccupation')}
           disabled={!isOtpComplete}
           activeOpacity={0.8}
         >
