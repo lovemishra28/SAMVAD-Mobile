@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,18 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Modal,
+  Animated,
+  Pressable,
 } from 'react-native';
-import { Bell, ArrowRight, TrendingUp, ClipboardList, Clock, MessageCircle } from 'lucide-react-native';
+import { Bell, ArrowRight, TrendingUp, ClipboardList, Clock, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../theme/theme';
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const slideAnim = useRef(new Animated.Value(340)).current;
 
   // Quick stat data
   const stats = [
@@ -28,9 +33,57 @@ const HomeScreen = () => {
     { id: '3', title: 'Kisan Samman Nidhi', benefit: '₹6,000/year', daysLeft: 35, deadline: '01 May 2026', badge: 'Closing Soon', badgeColor: '#FFE8CC', badgeBg: '#FF9F43' },
   ];
 
-  const handleHelpPress = () => {
-    console.log('Help button pressed');
-    // Add navigation or modal logic here
+  const notificationSchemes = [
+    { id: 'n1', title: 'PM Vidya Yojna', benefit: '₹2,000/month', daysLeft: 5, deadline: '30 Mar 2026', badge: 'Trending', badgeColor: '#f7dcca', badgeBg: '#f28d4a' },
+    { id: 'n2', title: 'Ladli Behna Yojana', benefit: '₹1,250/month', daysLeft: 19, deadline: '15 Apr 2026', badge: 'NEW', badgeColor: '#E1FCE0', badgeBg: '#51CF66' },
+    { id: 'n3', title: 'Kisan Samman Nidhi', benefit: '₹6,000/year', daysLeft: 35, deadline: '01 May 2026', badge: 'Closing Soon', badgeColor: '#FFE8CC', badgeBg: '#FF9F43' },
+    { id: 'n4', title: 'Shiksha Sahayata Yojna', benefit: '₹1,800/month', daysLeft: -4, deadline: '12 Mar 2026', badge: 'Closed', badgeColor: '#FECACA', badgeBg: '#EF4444' },
+  ];
+
+  const monthIndex: Record<string, number> = {
+    Jan: 0,
+    Feb: 1,
+    Mar: 2,
+    Apr: 3,
+    May: 4,
+    Jun: 5,
+    Jul: 6,
+    Aug: 7,
+    Sep: 8,
+    Oct: 9,
+    Nov: 10,
+    Dec: 11,
+  };
+
+  const parseDeadline = (deadline: string) => {
+    const [day, month, year] = deadline.split(' ');
+    const parsedDay = Number(day);
+    const parsedYear = Number(year);
+    const parsedMonth = monthIndex[month] ?? 0;
+    return new Date(parsedYear, parsedMonth, parsedDay).getTime();
+  };
+
+  const sortedNotificationSchemes = [...notificationSchemes].sort((a, b) => {
+    const aDate = parseDeadline(a.deadline);
+    const bDate = parseDeadline(b.deadline);
+    return bDate - aDate;
+  });
+
+  const handleOpenNotifications = () => {
+    setIsNotificationOpen(true);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleCloseNotifications = () => {
+    Animated.timing(slideAnim, {
+      toValue: 340,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => setIsNotificationOpen(false));
   };
 
   const handleOpenScheme = (scheme: any) => {
@@ -56,7 +109,7 @@ const HomeScreen = () => {
           <Text style={styles.headerWelcome}>WELCOME!</Text>
           <Text style={styles.headerName}>Ramesh Ji</Text>
         </View>
-        <TouchableOpacity style={styles.bellContainer}>
+        <TouchableOpacity style={styles.bellContainer} onPress={handleOpenNotifications} activeOpacity={0.8}>
           <Bell size={22} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
@@ -116,10 +169,57 @@ const HomeScreen = () => {
       </View>
 
       </ScrollView>
+      <Modal
+        visible={isNotificationOpen}
+        transparent
+        animationType="none"
+        onRequestClose={handleCloseNotifications}
+      >
+        <View style={styles.notificationRoot}>
+          <Pressable style={styles.notificationBackdrop} onPress={handleCloseNotifications} />
+          <Animated.View
+            style={[
+              styles.notificationPanel,
+              {
+                transform: [{ translateX: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.notificationHeader}>
+              <Text style={styles.notificationTitle}>Notifications</Text>
+              <TouchableOpacity
+                style={styles.notificationCloseButton}
+                onPress={handleCloseNotifications}
+                activeOpacity={0.8}
+              >
+                <X size={20} color={theme.colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
 
-      <TouchableOpacity style={styles.helpButton} activeOpacity={0.85} onPress={handleHelpPress}>
-        <MessageCircle size={20} color={theme.colors.white} />
-      </TouchableOpacity>
+            <ScrollView
+              style={styles.notificationContent}
+              contentContainerStyle={styles.notificationContentInner}
+              showsVerticalScrollIndicator={false}
+            >
+              {sortedNotificationSchemes.map(item => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.notificationCard}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    handleCloseNotifications();
+                    handleOpenScheme(item);
+                  }}
+                >
+                  <Text style={styles.notificationCardTitle}>{item.title}</Text>
+                  <Text style={styles.notificationCardStatus}>Date: {item.deadline}</Text>
+                  <Text style={styles.notificationCardBenefit}>{item.benefit}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -313,21 +413,80 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.primary,
   },
-  helpButton: {
-    position: 'absolute',
-    right: 18,
-    bottom: 18,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#3E96E8',
+  notificationRoot: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  notificationBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.28)',
+  },
+  notificationPanel: {
+    width: '83%',
+    maxWidth: 360,
+    height: '100%',
+    backgroundColor: theme.colors.white,
+    paddingTop: theme.spacing.xl,
+    borderTopLeftRadius: theme.borderRadius.xl,
+    borderBottomLeftRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
+    ...theme.shadows.card,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.m,
+    paddingBottom: theme.spacing.s,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF1F8',
+  },
+  notificationTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  notificationCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F2F5FB',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#245D93',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    elevation: 8,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationContentInner: {
+    paddingHorizontal: theme.spacing.m,
+    paddingVertical: theme.spacing.m,
+    paddingBottom: theme.spacing.xxl,
+  },
+  notificationCard: {
+    backgroundColor: '#F7F9FF',
+    borderWidth: 1,
+    borderColor: '#E6EBF7',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+  },
+  notificationCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  notificationCardStatus: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+    marginBottom: 5,
+  },
+  notificationCardBenefit: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2B9D5A',
   },
 });
 
