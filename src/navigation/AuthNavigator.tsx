@@ -8,6 +8,7 @@ import MainTabNavigator from './MainTabNavigator';
 import SchemeDetailsScreen from '../screens/main/SchemeDetailsScreen';
 import FeedbackScreen from '../screens/main/FeedbackScreen';
 import CompleteProfileScreen from '../screens/main/CompleteProfileScreen';
+import HelpSupportScreen from '../screens/main/HelpSupportScreen';
 
 const Stack = createStackNavigator();
 
@@ -25,6 +26,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="SchemeDetails" component={SchemeDetailsScreen} />
       <Stack.Screen name="Feedback" component={FeedbackScreen} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+      <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
     </Stack.Navigator>
   );
 };

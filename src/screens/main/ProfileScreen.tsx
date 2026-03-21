@@ -106,7 +106,12 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
 
         {/* ACTIONS */}
         <View style={styles.card}>
-          <ActionButton icon={HelpCircle} label="Help & Support" color={theme.colors.primary} />
+          <ActionButton
+            icon={HelpCircle}
+            label="Help & Support"
+            color={theme.colors.primary}
+            onPress={() => navigation.navigate('HelpSupport')}
+          />
           <View style={styles.divider} />
           <ActionButton
             icon={LogOut}
