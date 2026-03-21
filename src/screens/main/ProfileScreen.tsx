@@ -23,7 +23,6 @@ import {
 import { theme } from '../../theme/theme';
 
 const ProfileScreen = ({ navigation }: { navigation: any }) => {
-  const isProfileComplete = false;
 
   const profileInfo = [
     { icon: CreditCard, label: 'Aadhaar', value: '**** **** 1234' },
@@ -79,20 +78,6 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
       {/* BODY */}
       <View style={styles.body}>
 
-        {/* COMPLETE PROFILE (SCHEME STYLE CARD) */}
-        {!isProfileComplete && (
-          <TouchableOpacity style={styles.highlightCard}>
-            <Text style={styles.cardTitle}>Complete Your Profile</Text>
-            <Text style={styles.cardDesc}>
-              Add missing details to unlock all schemes
-            </Text>
-
-            <View style={styles.applyRow}>
-              <Text style={styles.applyText}>Complete Now</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
         {/* INFO CARD */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Your Details</Text>
@@ -105,7 +90,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
         </View>
 
         {/* 🔥 BIG FEEDBACK CARD (LIKE SCHEME CARD) */}
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Feedback')}>
           <Text style={styles.cardTitle}>Give Feedback</Text>
           <Text style={styles.cardDesc}>
             Share your experience with schemes and help improve services
@@ -211,13 +196,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.m,
     marginBottom: theme.spacing.m,
     ...theme.shadows.card,
-  },
-
-  highlightCard: {
-    backgroundColor: '#E6F6FB',
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.m,
-    marginBottom: theme.spacing.m,
   },
 
   sectionTitle: {
