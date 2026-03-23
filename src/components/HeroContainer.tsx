@@ -15,12 +15,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    marginTop: -12,
+    marginTop: -6,
     paddingTop: theme.spacing.m,
     paddingHorizontal: 0,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     overflow: 'hidden',
+    zIndex: 1,
+    elevation: 4,
   },
 });
 

@@ -31,9 +31,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.l,
-    paddingTop: theme.spacing.l,
-    paddingBottom: theme.spacing.xl,
-    height: 120,
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.l,
+    height: 118,
   },
   sideSlot: {
     width: 44,
@@ -47,11 +47,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: '800',
     color: theme.colors.white,
     letterSpacing: 0.8,
     textAlign: 'center',
+    marginTop: 6,
   },
   subtitle: {
     fontSize: 20,

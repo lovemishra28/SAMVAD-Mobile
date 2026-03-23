@@ -8,12 +8,33 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Phone } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
+import { authApi } from '../../api/client';
 
 const LoginScreen = ({ navigation }: { navigation: any }) => {
   const [mobile, setMobile] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSendOtp = async () => {
+    if (mobile.length !== 10) {
+      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authApi.sendOtp(mobile);
+      navigation.navigate('Verify', { mobileNumber: mobile });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -50,16 +71,21 @@ const LoginScreen = ({ navigation }: { navigation: any }) => {
             value={mobile}
             onChangeText={setMobile}
             placeholderTextColor={theme.colors.textSecondary}
+            editable={!loading}
           />
         </View>
 
         <TouchableOpacity
-          style={[styles.button, !mobile && styles.buttonDisabled]}
-          onPress={() => navigation.navigate('Verify')}
-          disabled={!mobile}
+          style={[styles.button, (!mobile || loading) && styles.buttonDisabled]}
+          onPress={handleSendOtp}
+          disabled={!mobile || loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>Send OTP</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={theme.colors.white} />
+          ) : (
+            <Text style={styles.buttonText}>Send OTP</Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.privacyText}>

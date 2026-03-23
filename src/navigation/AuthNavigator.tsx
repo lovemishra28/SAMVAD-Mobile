@@ -6,6 +6,7 @@ import VerifyScreen from '../screens/auth/VerifyScreen';
 import OnboardingOccupationScreen from '../screens/auth/OnboardingOccupationScreen';
 import MainTabNavigator from './MainTabNavigator';
 import SchemeDetailsScreen from '../screens/main/SchemeDetailsScreen';
+import SchemeApplyFormScreen from '../screens/main/SchemeApplyFormScreen';
 import FeedbackScreen from '../screens/main/FeedbackScreen';
 import CompleteProfileScreen from '../screens/main/CompleteProfileScreen';
 
@@ -23,6 +24,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="OnboardingOccupation" component={OnboardingOccupationScreen} />
       <Stack.Screen name="MainApp" component={MainTabNavigator} />
       <Stack.Screen name="SchemeDetails" component={SchemeDetailsScreen} />
+      <Stack.Screen name="SchemeApplyForm" component={SchemeApplyFormScreen} />
       <Stack.Screen name="Feedback" component={FeedbackScreen} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
     </Stack.Navigator>

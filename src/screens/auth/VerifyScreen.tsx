@@ -6,15 +6,20 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { ShieldCheck } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
+import { authApi, saveToken, saveUserProfile } from '../../api/client';
 
-const OTP_LENGTH = 4;
+const OTP_LENGTH = 6;
 
-const VerifyScreen = ({ navigation }: { navigation: any }) => {
+const VerifyScreen = ({ navigation, route }: { navigation: any; route: any }) => {
+  const mobileNumber = route?.params?.mobileNumber || '';
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [timer, setTimer] = useState(60);
+  const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   // Countdown timer
@@ -29,7 +34,6 @@ const VerifyScreen = ({ navigation }: { navigation: any }) => {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto-focus next box
     if (value && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -38,6 +42,49 @@ const VerifyScreen = ({ navigation }: { navigation: any }) => {
   const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      await authApi.sendOtp(mobileNumber);
+      setTimer(60);
+      Alert.alert('OTP Resent', 'A new OTP has been sent to your mobile.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to resend OTP.');
+    }
+  };
+
+  const handleVerify = async () => {
+    const otpCode = otp.join('');
+    if (otpCode.length !== OTP_LENGTH) return;
+
+    setLoading(true);
+    try {
+      const response = await authApi.verifyOtp(mobileNumber, otpCode);
+
+      // Store JWT token and user profile
+      await saveToken(response.token);
+      await saveUserProfile(response.user);
+
+      // Navigate based on whether user needs onboarding
+      if (response.needsOnboarding) {
+        navigation.replace('OnboardingOccupation');
+      } else {
+        navigation.replace('MainApp');
+      }
+    } catch (error: any) {
+      if (error.status === 403) {
+        Alert.alert(
+          'Access Denied',
+          'This mobile number is not registered in the voter list. Please contact your local representative.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        Alert.alert('Verification Failed', error.message || 'Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,7 +99,7 @@ const VerifyScreen = ({ navigation }: { navigation: any }) => {
         <ShieldCheck size={48} color={theme.colors.white} />
         <Text style={styles.headerTitle}>Verify OTP</Text>
         <Text style={styles.headerSubtitle}>
-          We've sent a 4-digit code to your mobile
+          We've sent a {OTP_LENGTH}-digit code to +91 {mobileNumber}
         </Text>
       </View>
 
@@ -74,6 +121,7 @@ const VerifyScreen = ({ navigation }: { navigation: any }) => {
               maxLength={1}
               textAlign="center"
               selectTextOnFocus
+              editable={!loading}
             />
           ))}
         </View>
@@ -85,19 +133,23 @@ const VerifyScreen = ({ navigation }: { navigation: any }) => {
               Resend OTP in <Text style={styles.timerBold}>00:{timer.toString().padStart(2, '0')}</Text>
             </Text>
           ) : (
-            <TouchableOpacity onPress={() => setTimer(60)}>
+            <TouchableOpacity onPress={handleResendOtp}>
               <Text style={styles.resendText}>Resend OTP</Text>
             </TouchableOpacity>
           )}
         </View>
 
         <TouchableOpacity
-          style={[styles.button, !isOtpComplete && styles.buttonDisabled]}
-          onPress={() => navigation.replace('OnboardingOccupation')}
-          disabled={!isOtpComplete}
+          style={[styles.button, (!isOtpComplete || loading) && styles.buttonDisabled]}
+          onPress={handleVerify}
+          disabled={!isOtpComplete || loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>Verify & Continue</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={theme.colors.white} />
+          ) : (
+            <Text style={styles.buttonText}>Verify & Continue</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -148,16 +200,16 @@ const styles = StyleSheet.create({
   otpRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 14,
+    gap: 10,
     marginBottom: theme.spacing.l,
   },
   otpBox: {
-    width: 56,
-    height: 56,
+    width: 46,
+    height: 52,
     borderWidth: 2,
     borderColor: theme.colors.border,
     borderRadius: theme.borderRadius.md,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: theme.colors.textPrimary,
     backgroundColor: theme.colors.background,

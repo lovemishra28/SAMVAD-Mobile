@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,127 +7,131 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { Search, ChevronRight } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { theme } from '../../theme/theme';
 import SegmentedTabContainer from '../../components/SegmentedTabContainer';
 import HeaderContainer from '../../components/HeaderContainer';
 import HeroContainer from '../../components/HeroContainer';
+import { mobileApi } from '../../api/client';
 
 const ApplicationsScreen = () => {
   const navigation = useNavigation<any>();
   const [activeTab, setActiveTab] = useState('Applied');
   const [searchQuery, setSearchQuery] = useState('');
+  const [applications, setApplications] = useState<any[]>([]);
+  const [schemes, setSchemes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const appliedItems = [
-    {
-      id: '1',
-      title: 'PM Vidya Yojna',
-      description: 'Educational scholarship for students',
-      benefit: '₹2,000/month',
-      deadline: '30 Mar 2026',
-      date: '15 March 2026',
-    },
-    {
-      id: '2',
-      title: 'Ladli Behna Yojna',
-      description: 'Financial support for women',
-      benefit: '₹1,250/month',
-      deadline: '15 Apr 2026',
-      date: '12 March 2026',
-    },
-  ];
-
-  const availableItems = [
-    {
-      id: '3',
-      title: 'Kisan Samman Nidhi',
-      description: 'Farmer income support scheme',
-      benefit: '₹6,000/year',
-      deadline: '01 May 2026',
-    },
-    {
-      id: '4',
-      title: 'Solar Pump Yojna',
-      description: 'Subsidy for solar irrigation pumps',
-      benefit: '₹10,000 subsidy',
-      deadline: '20 Apr 2026',
-    },
-  ];
-
-  const data = activeTab === 'Applied' ? appliedItems : availableItems;
-
-  const filtered = data.filter(item =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        try {
+          const [appRes, schRes] = await Promise.all([
+            mobileApi.getApplications().catch(() => ({ applications: [] })),
+            mobileApi.getSchemes().catch(() => ({ schemes: [] })),
+          ]);
+          setApplications(appRes.applications || []);
+          setSchemes(schRes.schemes || []);
+        } catch {
+          // fallback
+        } finally {
+          setLoading(false);
+        }
+      };
+      load();
+    }, [])
   );
 
-  const openSchemeDetails = (scheme: any) => {
-    const normalizedScheme =
-      scheme.title === 'Ladli Behna Yojna' ? { ...scheme, title: 'Ladli Behna Yojna' } : scheme;
+  // Get scheme IDs that user already applied for
+  const appliedSchemeIds = new Set(applications.map(a => a.schemeId));
 
-    navigation.navigate('SchemeDetails', { scheme: normalizedScheme });
+  // Available = schemes user hasn't applied for yet
+  const availableSchemes = schemes
+    .filter(s => !s.isApplied && !appliedSchemeIds.has(s.scheme_id))
+    .map(s => ({
+      _id: s._id || s.scheme_id,
+      schemeId: s.scheme_id,
+      title: s.scheme_name,
+      description: s.description,
+      benefit_type: s.benefit_type,
+      deadline: s.end_date,
+      eligibility: s.eligibility,
+      status: 'available',
+    }));
+
+  const appliedItems = applications.map(a => ({
+    _id: a._id,
+    schemeId: a.schemeId,
+    title: a.schemeName,
+    description: a.schemeDetails?.description || '',
+    benefit_type: a.schemeDetails?.benefit_type || '',
+    deadline: a.schemeDetails?.end_date || '',
+    date: a.appliedAt ? new Date(a.appliedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+    status: a.status,
+  }));
+
+  const data = activeTab === 'Applied' ? appliedItems : availableSchemes;
+  const filtered = data.filter(item =>
+    (item.title || '').toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const openSchemeDetails = (item: any) => {
+    navigation.navigate('SchemeDetails', {
+      scheme: {
+        id: item.schemeId,
+        title: item.title,
+        desc: item.description,
+        schemeId: item.schemeId,
+        deadline: item.deadline,
+        eligibility: item.eligibility,
+        benefit_type: item.benefit_type,
+      },
+    });
   };
 
   const ApplicationCard = ({ item }: { item: any }) => {
     const isApplied = activeTab === 'Applied';
 
     return (
-      <TouchableOpacity style={styles.card} activeOpacity={0.85}>
+      <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={() => openSchemeDetails(item)}>
         <View style={styles.cardTop}>
           <View
-            style={[
-              styles.tag,
-              {
-                backgroundColor: isApplied
-                  ? theme.colors.badgeSuccessBg
-                  : '#E6F6FB',
-              },
-            ]}
+            style={[styles.tag, {
+              backgroundColor: isApplied ? theme.colors.badgeSuccessBg : '#E6F6FB',
+            }]}
           >
-            <Text
-              style={[
-                styles.tagText,
-                {
-                  color: isApplied
-                    ? theme.colors.success
-                    : theme.colors.primary,
-                },
-              ]}
-            >
-              {isApplied ? 'Applied' : 'Available'}
+            <Text style={[styles.tagText, {
+              color: isApplied ? theme.colors.success : theme.colors.primary,
+            }]}>
+              {isApplied ? (item.status === 'applied' ? 'Applied' : item.status) : 'Available'}
             </Text>
           </View>
-
           <ChevronRight size={18} color={theme.colors.textSecondary} />
         </View>
 
         <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text style={styles.cardDesc}>{item.description}</Text>
+        {item.description ? <Text style={styles.cardDesc}>{item.description}</Text> : null}
 
-        {/* SAME CHIP SYSTEM */}
         <View style={styles.chipsRow}>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>{item.benefit}</Text>
-          </View>
-
-          <View style={[styles.chip, styles.deadlineChip]}>
-            <Text style={styles.deadlineLabel}>Deadline</Text>
-            <Text style={styles.deadlineValue}>{item.deadline}</Text>
-          </View>
+          {item.benefit_type ? (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>{item.benefit_type}</Text>
+            </View>
+          ) : null}
+          {item.deadline ? (
+            <View style={[styles.chip, styles.deadlineChip]}>
+              <Text style={styles.deadlineLabel}>Deadline</Text>
+              <Text style={styles.deadlineValue}>{item.deadline}</Text>
+            </View>
+          ) : null}
         </View>
 
-        <View style={styles.applyRow}>
-          <TouchableOpacity
-            style={styles.applyLink}
-            activeOpacity={0.75}
-            onPress={() => openSchemeDetails(item)}
-          >
-            <Text style={styles.applyText}>
-              {isApplied ? 'View Details' : 'View & Apply'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {isApplied && item.date ? (
+          <Text style={styles.dateText}>Applied on: {item.date}</Text>
+        ) : null}
       </TouchableOpacity>
     );
   };
@@ -136,13 +140,11 @@ const ApplicationsScreen = () => {
     <View style={styles.container}>
       <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
-      {/* ✅ SAME HEADER */}
       <HeaderContainer title="Applications" />
 
-      {/* ✅ SAME HERO CONTAINER */}
-      <HeroContainer>
-
-        {/* ✅ SAME SEARCH BAR */}
+      <View style={styles.bodyContainer}>
+        <View style={styles.body}>
+          <HeroContainer>
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -156,187 +158,60 @@ const ApplicationsScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* TABS */}
         <SegmentedTabContainer
           tabs={['Applied', 'Available']}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
 
-        {/* LIST */}
         <ScrollView
           style={styles.heroScroll}
           contentContainerStyle={styles.heroScrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {filtered.length > 0 ? (
-            filtered.map(item => (
-              <ApplicationCard key={item.id} item={item} />
-            ))
+          {loading ? (
+            <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
+          ) : filtered.length > 0 ? (
+            filtered.map(item => <ApplicationCard key={item._id} item={item} />)
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>
-                {searchQuery
-                  ? 'No applications match your search.'
-                  : 'No applications available.'}
+                {searchQuery ? 'No applications match your search.' : 'No applications yet.'}
               </Text>
             </View>
           )}
         </ScrollView>
-
       </HeroContainer>
+        </View>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-
-  /* MATCHED SCROLL */
-  heroScroll: {
-    flex: 1,
-  },
-
-  heroScrollContent: {
-    paddingBottom: theme.spacing.m,
-  },
-
-  /* SAME SEARCH BAR */
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#B7DBE8',
-    borderRadius: 16,
-    paddingLeft: 12,
-    paddingRight: 7,
-    minHeight: 54,
-    marginBottom: theme.spacing.m,
-  },
-
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-    fontWeight: '500',
-  },
-
-  searchButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: theme.colors.textPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#B7DBE8',
-  },
-
-  /* CARD */
-  card: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.m,
-    marginBottom: theme.spacing.m,
-    ...theme.shadows.card,
-  },
-
-  cardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  tag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: theme.borderRadius.full,
-  },
-
-  tagText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  cardTitle: {
-    ...theme.typography.subHeader,
-    marginBottom: theme.spacing.xs,
-  },
-
-  cardDesc: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.m,
-  },
-
-  chipsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: theme.spacing.m,
-  },
-
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.borderRadius.full,
-    gap: 4,
-  },
-
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-
-  deadlineChip: {
-    backgroundColor: '#FFF6EA',
-    borderWidth: 1,
-    borderColor: '#FFE1B3',
-  },
-
-  deadlineLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#A56500',
-    textTransform: 'uppercase',
-  },
-
-  deadlineValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-
-  applyRow: {
-    alignItems: 'flex-end',
-  },
-
-  applyLink: {
-    paddingVertical: 2,
-  },
-
-  applyText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-
-  emptyState: {
-    padding: theme.spacing.xxl,
-    alignItems: 'center',
-  },
-
-  emptyText: {
-    color: theme.colors.textSecondary,
-    fontSize: 15,
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: theme.colors.primary },
+  bodyContainer: { flex: 1, marginTop: theme.spacing.s, marginHorizontal: theme.spacing.s, marginBottom: theme.spacing.s },
+  body: { flex: 1, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, backgroundColor: theme.colors.background, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
+  heroScroll: { flex: 1 },
+  heroScrollContent: { paddingBottom: theme.spacing.l, paddingHorizontal: theme.spacing.m },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#B7DBE8', borderRadius: 28, paddingLeft: 16, paddingRight: 16, minHeight: 56, marginBottom: theme.spacing.m, marginHorizontal: theme.spacing.s, },
+  searchInput: { flex: 1, height: 40, fontSize: 15, color: theme.colors.textPrimary, fontWeight: '500' },
+  searchButton: { width: 38, height: 38, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: theme.colors.textPrimary, alignItems: 'center', justifyContent: 'center', backgroundColor: '#B7DBE8' },
+  card: { backgroundColor: theme.colors.white, borderRadius: theme.borderRadius.lg, padding: theme.spacing.m, marginBottom: theme.spacing.m, ...theme.shadows.card },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.borderRadius.full },
+  tagText: { fontSize: 11, fontWeight: '700' },
+  cardTitle: { ...theme.typography.subHeader, marginTop: theme.spacing.s, marginBottom: theme.spacing.xs },
+  cardDesc: { ...theme.typography.body, color: theme.colors.textSecondary, marginBottom: theme.spacing.m },
+  chipsRow: { flexDirection: 'row', gap: 10, marginBottom: theme.spacing.s },
+  chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.borderRadius.full, gap: 4 },
+  chipText: { fontSize: 12, fontWeight: '600', color: theme.colors.textPrimary },
+  deadlineChip: { backgroundColor: '#FFF6EA', borderWidth: 1, borderColor: '#FFE1B3' },
+  deadlineLabel: { fontSize: 11, fontWeight: '700', color: '#A56500', textTransform: 'uppercase' },
+  deadlineValue: { fontSize: 12, fontWeight: '600', color: theme.colors.textPrimary },
+  dateText: { ...theme.typography.caption, color: theme.colors.textSecondary, marginTop: theme.spacing.xs },
+  emptyState: { padding: theme.spacing.xxl, alignItems: 'center' },
+  emptyText: { color: theme.colors.textSecondary, fontSize: 15, textAlign: 'center' },
 });
 
 export default ApplicationsScreen;

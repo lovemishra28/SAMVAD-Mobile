@@ -1,10 +1,12 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, StatusBar } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Animated, StatusBar, ActivityIndicator } from 'react-native';
 import { theme } from '../../theme/theme';
+import { getToken, authApi, clearAuth } from '../../api/client';
 
 const StarterScreen = ({ navigation }: { navigation: any }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     // Fade-in + scale animation
@@ -21,12 +23,32 @@ const StarterScreen = ({ navigation }: { navigation: any }) => {
       }),
     ]).start();
 
-    // Auto-navigate to Login after 2 seconds
-    const timer = setTimeout(() => {
-      navigation.replace('Login');
-    }, 2000);
+    // Check for existing valid session
+    const checkSession = async () => {
+      try {
+        const token = await getToken();
+        if (token) {
+          // Validate token against server
+          const res = await authApi.getMe();
+          if (res?.user) {
+            // Valid session — skip to main app
+            navigation.replace('MainApp');
+            return;
+          }
+        }
+      } catch {
+        // Token expired or invalid — clear and proceed to login
+        await clearAuth();
+      }
 
-    return () => clearTimeout(timer);
+      setChecking(false);
+      // Auto-navigate to Login after brief splash
+      setTimeout(() => {
+        navigation.replace('Login');
+      }, 1200);
+    };
+
+    checkSession();
   }, [navigation, fadeAnim, scaleAnim]);
 
   return (
@@ -47,6 +69,14 @@ const StarterScreen = ({ navigation }: { navigation: any }) => {
         <Text style={styles.logoText}>SAMVAD</Text>
         <Text style={styles.tagline}>सम्वाद — आपकी आवाज़, सरकार तक</Text>
       </Animated.View>
+
+      {checking && (
+        <ActivityIndicator
+          size="small"
+          color="rgba(255,255,255,0.7)"
+          style={{ position: 'absolute', bottom: 80 }}
+        />
+      )}
 
       <Animated.Text style={[styles.footerText, { opacity: fadeAnim }]}>
         Empowering Citizens

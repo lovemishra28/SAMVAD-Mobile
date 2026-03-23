@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,67 +9,120 @@ import {
   Modal,
   Animated,
   Pressable,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { Bell, ArrowRight, TrendingUp, ClipboardList, Clock, X } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import {
+  Bell,
+  TrendingUp,
+  ClipboardList,
+  Clock,
+  X,
+} from 'lucide-react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { theme } from '../../theme/theme';
+import { mobileApi, getCachedUser } from '../../api/client';
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(340)).current;
 
-  // Quick stat data
+  const [userName, setUserName] = useState('User');
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const user = await getCachedUser();
+      if (user?.name) setUserName(user.name);
+
+      const [recoRes, notifRes, appRes] = await Promise.all([
+        mobileApi
+          .getMyRecommendations()
+          .catch(() => ({ schemes: [], found: false })),
+        mobileApi.getNotifications().catch(() => ({ notifications: [] })),
+        mobileApi.getApplications().catch(() => ({ applications: [] })),
+      ]);
+
+      setRecommendations((recoRes.schemes || []).slice(0, 5));
+      setNotifications(notifRes.notifications || []);
+      setUnreadCount(
+        typeof notifRes.unreadCount === 'number'
+          ? notifRes.unreadCount
+          : (notifRes.notifications || []).filter((n: any) => n.isUnread)
+              .length,
+      );
+      setApplications(appRes.applications || []);
+    } catch {
+      // Fallback silently
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadData();
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, [loadData]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  // Compute stats
+  const activeSchemeCount = recommendations.length;
+  const appliedCount = applications.filter(a => a.status === 'applied').length;
+  const pendingCount = applications.filter(a => a.status === 'pending').length;
+
   const stats = [
-    { icon: TrendingUp, label: 'Active Schemes', value: '12', color: theme.colors.primary },
-    { icon: ClipboardList, label: 'Applied', value: '2', color: theme.colors.success },
-    { icon: Clock, label: 'Pending', value: '0', color: theme.colors.warning },
+    {
+      icon: TrendingUp,
+      label: 'Active Schemes',
+      value: String(activeSchemeCount),
+      color: theme.colors.primary,
+    },
+    {
+      icon: ClipboardList,
+      label: 'Applied',
+      value: String(appliedCount),
+      color: theme.colors.success,
+    },
+    {
+      icon: Clock,
+      label: 'Pending',
+      value: String(pendingCount),
+      color: theme.colors.warning,
+    },
   ];
-
-  // Mock scheme recommendations
-  const recommendations = [
-    { id: '1', title: 'PM Vidya Yojna', benefit: '₹2,000/month', daysLeft: 5, deadline: '30 Mar 2026', badge: 'Trending', badgeColor: '#f7dcca', badgeBg:  '#f28d4a'},
-    { id: '2', title: 'Ladli Behna Yojana', benefit: '₹1,250/month', daysLeft: 19, deadline: '15 Apr 2026', badge: 'NEW', badgeColor:'#E1FCE0'  , badgeBg: '#51CF66'},
-    { id: '3', title: 'Kisan Samman Nidhi', benefit: '₹6,000/year', daysLeft: 35, deadline: '01 May 2026', badge: 'Closing Soon', badgeColor: '#FFE8CC', badgeBg: '#FF9F43' },
-  ];
-
-  const notificationSchemes = [
-    { id: 'n1', title: 'PM Vidya Yojna', benefit: '₹2,000/month', daysLeft: 5, deadline: '30 Mar 2026', badge: 'Trending', badgeColor: '#f7dcca', badgeBg: '#f28d4a' },
-    { id: 'n2', title: 'Ladli Behna Yojana', benefit: '₹1,250/month', daysLeft: 19, deadline: '15 Apr 2026', badge: 'NEW', badgeColor: '#E1FCE0', badgeBg: '#51CF66' },
-    { id: 'n3', title: 'Kisan Samman Nidhi', benefit: '₹6,000/year', daysLeft: 35, deadline: '01 May 2026', badge: 'Closing Soon', badgeColor: '#FFE8CC', badgeBg: '#FF9F43' },
-    { id: 'n4', title: 'Shiksha Sahayata Yojna', benefit: '₹1,800/month', daysLeft: -4, deadline: '12 Mar 2026', badge: 'Closed', badgeColor: '#FECACA', badgeBg: '#EF4444' },
-  ];
-
-  const monthIndex: Record<string, number> = {
-    Jan: 0,
-    Feb: 1,
-    Mar: 2,
-    Apr: 3,
-    May: 4,
-    Jun: 5,
-    Jul: 6,
-    Aug: 7,
-    Sep: 8,
-    Oct: 9,
-    Nov: 10,
-    Dec: 11,
-  };
-
-  const parseDeadline = (deadline: string) => {
-    const [day, month, year] = deadline.split(' ');
-    const parsedDay = Number(day);
-    const parsedYear = Number(year);
-    const parsedMonth = monthIndex[month] ?? 0;
-    return new Date(parsedYear, parsedMonth, parsedDay).getTime();
-  };
-
-  const sortedNotificationSchemes = [...notificationSchemes].sort((a, b) => {
-    const aDate = parseDeadline(a.deadline);
-    const bDate = parseDeadline(b.deadline);
-    return bDate - aDate;
-  });
 
   const handleOpenNotifications = () => {
+    setUnreadCount(0);
+    setNotifications(prev => prev.map(n => ({ ...n, isUnread: false })));
+    mobileApi
+      .markAllNotificationsRead()
+      .then(() => {
+        loadData();
+      })
+      .catch(() => {
+        // Keep optimistic UI; next poll/focus fetch will reconcile state.
+      });
+
     setIsNotificationOpen(true);
     Animated.timing(slideAnim, {
       toValue: 0,
@@ -87,88 +140,151 @@ const HomeScreen = () => {
   };
 
   const handleOpenScheme = (scheme: any) => {
-    const normalizedScheme =
-      scheme.title === 'Ladli Behna Yojana' ? { ...scheme, title: 'Ladli Behna Yojna' } : scheme;
-
-    navigation.navigate('SchemeDetails', { scheme: normalizedScheme });
+    navigation.navigate('SchemeDetails', { scheme });
   };
+
+  // Flatten notification schemes for the panel
+  const notificationItems = notifications.flatMap(n =>
+    (n.schemes || []).map((s: any) => ({
+      id: `${n._id}_${s.schemeId}`,
+      title: s.schemeName,
+      date: new Date(n.sentAt).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }),
+      benefit_type: s.benefit_type || '',
+      schemeId: s.schemeId,
+    })),
+  );
+
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.mainContainer,
+          { justifyContent: 'center', alignItems: 'center' },
+        ]}
+      >
+        <StatusBar
+          backgroundColor={theme.colors.primary}
+          barStyle="light-content"
+        />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <StatusBar
+        backgroundColor={theme.colors.primary}
+        barStyle="light-content"
+      />
 
       {/* Header bar */}
       <View style={styles.headerBar}>
         <View style={styles.headerSideSpacer} />
         <View style={styles.headerCenterContent}>
           <Text style={styles.headerWelcome}>WELCOME!</Text>
-          <Text style={styles.headerName}>Ramesh Ji</Text>
+          <Text style={styles.headerName}>{userName}</Text>
         </View>
-        <TouchableOpacity style={styles.bellContainer} onPress={handleOpenNotifications} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.bellContainer}
+          onPress={handleOpenNotifications}
+          activeOpacity={0.8}
+        >
           <Bell size={22} color={theme.colors.white} />
+          {unreadCount > 0 && (
+            <View style={styles.bellBadge}>
+              <Text style={styles.bellBadgeText}>{unreadCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
       <View style={styles.body}>
-        {/* Quick Stats Row */}
-        <View style={styles.statsRow}>
-          {stats.map(stat => (
-            <View key={stat.label} style={[styles.statCard, { borderTopColor: stat.color }]}>
-              <View style={[styles.statIconWrap, { backgroundColor: `${stat.color}1A` }]}>
-                <stat.icon size={18} color={stat.color} />
-              </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Recommendations */}
-        <Text style={styles.sectionTitle}>Recommended for You</Text>
-
-        {recommendations.map(scheme => (
-          <View
-            key={scheme.id}
-            style={styles.schemeCard}
-          >
-            <View style={styles.schemeTopRow}>
-              <View style={[styles.badgeChip, { backgroundColor: scheme.badgeBg }]}>
-                <Text style={[styles.badgeText, { color: scheme.badgeColor }]}>{scheme.badge}</Text>
-              </View>
-              <View style={styles.benefitBadge}>
-                <Text style={styles.benefitText}>{scheme.benefit}</Text>
-              </View>
-            </View>
-
-            <Text style={styles.schemeName}>{scheme.title}</Text>
-
-            <View style={styles.schemeCardBottom}>
-              <View style={styles.deadlineWrap}>
-                <Clock size={13} color={theme.colors.textSecondary} />
-                <Text style={styles.daysLeftText}>{scheme.daysLeft} days left</Text>
-                <Text style={styles.dotText}>•</Text>
-                <Text style={styles.deadlineText}>Deadline:</Text>
-                <Text style={styles.deadlineDateText}>{scheme.deadline}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.applyLink}
-                activeOpacity={0.75}
-                onPress={() => handleOpenScheme(scheme)}
+        <ScrollView
+          style={styles.bodyScroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+            />
+          }
+        >
+          {/* Quick Stats Row */}
+          <View style={styles.statsRow}>
+            {stats.map(stat => (
+              <View
+                key={stat.label}
+                style={[styles.statCard, { borderTopColor: stat.color }]}
               >
-                <Text style={styles.applyLinkText}>View & Apply</Text>
-                <ArrowRight size={14} color={theme.colors.primary} />
-              </TouchableOpacity>
-            </View>
+                <View
+                  style={[
+                    styles.statIconWrap,
+                    { backgroundColor: `${stat.color}1A` },
+                  ]}
+                >
+                  <stat.icon size={18} color={stat.color} />
+                </View>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            ))}
           </View>
-        ))}
+
+          {/* Recommendations from notification log */}
+          <View style={styles.recommendationSection}>
+            <Text style={styles.sectionTitle}>Recommended for You</Text>
+
+            {recommendations.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>
+                  No notifications sent yet. Schemes will appear once your
+                  representative dispatches them.
+                </Text>
+              </View>
+            ) : (
+              recommendations.map((reco, idx) => (
+                <View key={`reco_${idx}`} style={styles.schemeCard}>
+                  <View style={styles.schemeContent}>
+                    <Text style={styles.schemeName}>{reco.schemeName}</Text>
+                    {reco.schemeDescription ? (
+                      <Text style={styles.schemeDescription} numberOfLines={2}>
+                        {reco.schemeDescription}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.schemeActionRow}>
+                    <TouchableOpacity
+                      style={styles.schemeApplyButton}
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        handleOpenScheme({
+                          title: reco.schemeName,
+                          desc: reco.schemeDescription || '',
+                          schemeId: reco.schemeId || '',
+                        })
+                      }
+                    >
+                      <Text style={styles.schemeApplyButtonText}>
+                        View & Apply
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+          )}
+        </View>
+      </ScrollView>
       </View>
 
-      </ScrollView>
+      {/* Notifications Panel */}
       <Modal
         visible={isNotificationOpen}
         transparent
@@ -176,13 +292,14 @@ const HomeScreen = () => {
         onRequestClose={handleCloseNotifications}
       >
         <View style={styles.notificationRoot}>
-          <Pressable style={styles.notificationBackdrop} onPress={handleCloseNotifications} />
+          <Pressable
+            style={styles.notificationBackdrop}
+            onPress={handleCloseNotifications}
+          />
           <Animated.View
             style={[
               styles.notificationPanel,
-              {
-                transform: [{ translateX: slideAnim }],
-              },
+              { transform: [{ translateX: slideAnim }] },
             ]}
           >
             <View style={styles.notificationHeader}>
@@ -201,21 +318,37 @@ const HomeScreen = () => {
               contentContainerStyle={styles.notificationContentInner}
               showsVerticalScrollIndicator={false}
             >
-              {sortedNotificationSchemes.map(item => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.notificationCard}
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    handleCloseNotifications();
-                    handleOpenScheme(item);
-                  }}
-                >
-                  <Text style={styles.notificationCardTitle}>{item.title}</Text>
-                  <Text style={styles.notificationCardStatus}>Date: {item.deadline}</Text>
-                  <Text style={styles.notificationCardBenefit}>{item.benefit}</Text>
-                </TouchableOpacity>
-              ))}
+              {notificationItems.length === 0 ? (
+                <Text style={styles.emptyText}>No notifications yet.</Text>
+              ) : (
+                notificationItems.map(item => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.notificationCard}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      handleCloseNotifications();
+                      handleOpenScheme({
+                        id: item.schemeId,
+                        title: item.title,
+                        schemeId: item.schemeId,
+                      });
+                    }}
+                  >
+                    <Text style={styles.notificationCardTitle}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.notificationCardStatus}>
+                      Date: {item.date}
+                    </Text>
+                    {item.benefit_type ? (
+                      <Text style={styles.notificationCardBenefit}>
+                        {item.benefit_type}
+                      </Text>
+                    ) : null}
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
           </Animated.View>
         </View>
@@ -225,25 +358,19 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  scrollContent: {
-    paddingBottom: 96,
-  },
+  mainContainer: { flex: 1, backgroundColor: theme.colors.primary },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  scrollContent: { paddingBottom: 96, paddingHorizontal: theme.spacing.s },
   headerBar: {
     backgroundColor: theme.colors.primary,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.l,
-    paddingTop: theme.spacing.l,
-    paddingBottom: theme.spacing.xl,
+    paddingTop: theme.spacing.xxl,
+    paddingBottom: theme.spacing.l,
+    borderBottomLeftRadius: theme.borderRadius.xl,
+    borderBottomRightRadius: theme.borderRadius.xl,
   },
   headerCenterContent: {
     flex: 1,
@@ -251,10 +378,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerWelcome: {
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 36,
+    fontWeight: '900',
     color: theme.colors.white,
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
   headerName: {
@@ -264,10 +391,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  headerSideSpacer: {
-    width: 44,
-    height: 44,
-  },
+  headerSideSpacer: { width: 44, height: 44 },
   bellContainer: {
     width: 44,
     height: 44,
@@ -276,12 +400,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  bellBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: theme.colors.error,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bellBadgeText: { color: theme.colors.white, fontSize: 10, fontWeight: '700' },
   body: {
-    padding: theme.spacing.m,
+    flex: 1,
     marginTop: -12,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    marginHorizontal: theme.spacing.s,
+    marginBottom: theme.spacing.s,
+    borderRadius: theme.borderRadius.xl,
     backgroundColor: theme.colors.background,
+    overflow: 'hidden',
+  },
+  bodyScroll: {
+    flex: 1,
+    padding: theme.spacing.m,
   },
   statsRow: {
     flexDirection: 'row',
@@ -328,90 +470,86 @@ const styles = StyleSheet.create({
     ...theme.typography.subHeader,
     marginBottom: theme.spacing.m,
   },
+  recommendationSection: {
+    borderWidth: 1,
+    borderColor: '#DDE3F6',
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.m,
+    marginBottom: theme.spacing.l,
+  },
   schemeCard: {
     backgroundColor: theme.colors.white,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: theme.spacing.m,
+    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: theme.spacing.m,
+    paddingVertical: theme.spacing.s,
+    marginBottom: theme.spacing.s,
     borderWidth: 1,
     borderColor: '#EDEFFA',
+    minHeight: 120,
     ...theme.shadows.card,
-  },
-  schemeTopRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  badgeChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   schemeName: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
-    marginBottom: 10,
+    marginBottom: 4,
+    lineHeight: 26,
+    textAlign: 'left',
   },
-  benefitBadge: {
-    backgroundColor: '#E9F8EC',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-  benefitText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#2B9D5A',
-  },
-  schemeCardBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  deadlineWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
+  schemeContent: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingHorizontal: 4,
   },
-  daysLeftText: {
-    ...theme.typography.caption,
+  schemeDescription: {
+    fontSize: 14,
+    fontWeight: '500',
     color: theme.colors.textSecondary,
-    marginLeft: 4,
-    fontWeight: '600',
+    marginBottom: theme.spacing.s,
+    textAlign: 'left',
   },
-  dotText: {
-    ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-    marginHorizontal: 6,
-  },
-  deadlineText: {
-    ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  deadlineDateText: {
-    ...theme.typography.caption,
-    color: '#7B8299',
-    marginLeft: 4,
-  },
-  applyLink: {
-    flexDirection: 'row',
+  schemeActionRow: {
+    width: '100%',
+    marginTop: 8,
     alignItems: 'center',
-    gap: 4,
   },
-  applyLinkText: {
+  schemeApplyButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: theme.borderRadius.md,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  schemeApplyButtonText: {
+    color: theme.colors.white,
     fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.primary,
+    fontWeight: '800',
+  },
+  schemeTopRow: { display: 'none' },
+  badgeChip: { display: 'none' },
+  badgeText: { display: 'none' },
+  benefitBadge: { display: 'none' },
+  benefitText: { display: 'none' },
+  schemeCardBottom: { display: 'none' },
+  deadlineWrap: { display: 'none' },
+  deadlineText: { display: 'none' },
+  applyLink: { display: 'none' },
+  applyLinkText: { display: 'none' },
+  emptyState: { padding: theme.spacing.xxl, alignItems: 'center' },
+  emptyText: {
+    color: theme.colors.textSecondary,
+    fontSize: 15,
+    textAlign: 'center',
   },
   notificationRoot: {
     flex: 1,
@@ -455,9 +593,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notificationContent: {
-    flex: 1,
-  },
+  notificationContent: { flex: 1 },
   notificationContentInner: {
     paddingHorizontal: theme.spacing.m,
     paddingVertical: theme.spacing.m,
@@ -467,7 +603,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F9FF',
     borderWidth: 1,
     borderColor: '#E6EBF7',
-    borderRadius: 14,
+    borderRadius: theme.borderRadius.md,
     padding: 12,
     marginBottom: 10,
   },

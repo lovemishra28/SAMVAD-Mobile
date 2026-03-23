@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,70 +7,102 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
-import { Search, Calendar, IndianRupee, ArrowRight } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { Search } from 'lucide-react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { theme } from '../../theme/theme';
 import SegmentedTabContainer from '../../components/SegmentedTabContainer';
 import HeaderContainer from '../../components/HeaderContainer';
 import HeroContainer from '../../components/HeroContainer';
+import { mobileApi } from '../../api/client';
 
 const SchemesScreen = () => {
   const navigation = useNavigation<any>();
-  const [activeTab, setActiveTab] = useState('Current');
+  const [activeTab, setActiveTab] = useState('Recommended');
   const [searchQuery, setSearchQuery] = useState('');
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [allSchemes, setAllSchemes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const currentSchemes = [
-    { id: '1', title: 'PM Vidya Yojna', desc: 'Educational scholarship for students', amount: '2,000/month', deadline: '30 Mar 2026' },
-    { id: '2', title: 'Ladli Behna Yojna', desc: 'Financial support for women', amount: '1,250/month', deadline: '15 Apr 2026' },
-    { id: '3', title: 'Kisan Samman Nidhi', desc: 'Farmer income support scheme', amount: '6,000/year', deadline: '01 May 2026' },
-  ];
-
-  const upcomingSchemes = [
-    { id: '4', title: 'Ayushman Bharat', desc: 'Health insurance scheme', amount: '5,00,000', deadline: 'Coming Soon' },
-  ];
-
-  const schemes = activeTab === 'Current' ? currentSchemes : upcomingSchemes;
-  const filtered = schemes.filter(s =>
-    s.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        try {
+          const [recoRes, schemesRes] = await Promise.all([
+            mobileApi.getMyRecommendations().catch(() => ({ schemes: [], found: false })),
+            mobileApi.getSchemes().catch(() => ({ schemes: [] })),
+          ]);
+          setRecommendations(recoRes.schemes || []);
+          setAllSchemes(schemesRes.schemes || []);
+        } catch {
+          setRecommendations([]);
+          setAllSchemes([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      load();
+    }, [])
   );
 
   const openSchemeDetails = (scheme: any) => {
-    navigation.navigate('SchemeDetails', { scheme });
+    navigation.navigate('SchemeDetails', {
+      scheme: {
+        id: scheme.scheme_id || scheme.schemeId || '',
+        title: scheme.scheme_name || scheme.schemeName || '',
+        desc: scheme.description || '',
+        schemeId: scheme.scheme_id || scheme.schemeId || '',
+        deadline: scheme.end_date || '',
+        eligibility: scheme.eligibility || '',
+        benefit_type: scheme.benefit_type || '',
+        isApplied: !!scheme.isApplied,
+        appliedAt: scheme.appliedAt || '',
+      },
+    });
   };
 
-  const SchemeCard = ({ scheme }: { scheme: any }) => (
-    <View style={styles.card}>
-      {/* Card top */}
-      <Text style={styles.cardTitle}>{scheme.title}</Text>
-      <Text style={styles.cardDesc}>{scheme.desc}</Text>
-
-      {/* Info chips row */}
-      <View style={styles.chipsRow}>
-        <View style={styles.chip}>
-          <IndianRupee size={12} color={theme.colors.success} />
-          <Text style={styles.chipText}>{scheme.amount}</Text>
-        </View>
-        <View style={[styles.chip, styles.deadlineChip]}>
-          <Calendar size={12} color={theme.colors.warning} />
-          <Text style={styles.deadlineLabel}>Deadline</Text>
-          <Text style={styles.deadlineValue}>{scheme.deadline}</Text>
-        </View>
-      </View>
-
-      {/* Apply link */}
-      <View style={styles.applyRow}>
-        <TouchableOpacity
-          style={styles.applyLink}
-          activeOpacity={0.75}
-          onPress={() => openSchemeDetails(scheme)}
-        >
-          <Text style={styles.applyText}>View Details & Apply</Text>
-          <ArrowRight size={14} color={theme.colors.primary} />
-        </TouchableOpacity>
-      </View>
+  // Recommendation card (Home-style immersive look)
+  const RecoCard = ({ reco }: { reco: any }) => (
+    <View style={styles.schemeCard}>
+      <Text style={styles.schemeName}>{reco.schemeName}</Text>
+      <Text style={styles.schemeDescription} numberOfLines={2}>
+        {reco.description || 'Tap below to view and apply for this scheme.'}
+      </Text>
+      <TouchableOpacity
+        style={styles.schemeApplyButton}
+        activeOpacity={0.8}
+        onPress={() => openSchemeDetails({ schemeName: reco.schemeName })}
+      >
+        <Text style={styles.schemeApplyButtonText}>View Details & Apply</Text>
+      </TouchableOpacity>
     </View>
   );
+
+  // Full scheme card (Home-style)
+  const SchemeCard = ({ scheme }: { scheme: any }) => (
+    <View style={styles.schemeCard}>
+      <Text style={styles.schemeName}>{scheme.scheme_name}</Text>
+      <Text style={styles.schemeDescription}>{scheme.description || 'Tap to see details and apply.'}</Text>
+
+      <TouchableOpacity
+        style={styles.schemeApplyButton}
+        activeOpacity={0.8}
+        onPress={() => openSchemeDetails(scheme)}
+      >
+        <Text style={styles.schemeApplyButtonText}>{scheme.isApplied ? 'View Details' : 'View Details & Apply'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Filter logic
+  const filterBySearch = (items: any[], nameKey: string) =>
+    items.filter(item =>
+      (item[nameKey] || '').toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+
+  const filteredRecommendations = filterBySearch(recommendations, 'schemeName');
+  const filteredSchemes = filterBySearch(allSchemes, 'scheme_name');
 
   return (
     <View style={styles.container}>
@@ -78,8 +110,9 @@ const SchemesScreen = () => {
 
       <HeaderContainer title="Schemes" />
 
-      <HeroContainer>
-        {/* Search bar */}
+      <View style={styles.bodyContainer}>
+        <View style={styles.body}>
+          <HeroContainer>
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -93,21 +126,33 @@ const SchemesScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Tab toggle */}
         <SegmentedTabContainer
-          tabs={['Current', 'Upcoming']}
+          tabs={['Recommended', 'All Schemes']}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
 
-        {/* Scheme list */}
         <ScrollView
           style={styles.heroScroll}
           contentContainerStyle={styles.heroScrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {filtered.length > 0 ? (
-            filtered.map(scheme => <SchemeCard key={scheme.id} scheme={scheme} />)
+          {loading ? (
+            <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
+          ) : activeTab === 'Recommended' ? (
+            filteredRecommendations.length > 0 ? (
+              filteredRecommendations.map((reco, idx) => <RecoCard key={`reco_${idx}`} reco={reco} />)
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>
+                  {searchQuery
+                    ? 'No recommendations match your search.'
+                    : 'No notifications sent yet. Schemes will appear once dispatched by your representative.'}
+                </Text>
+              </View>
+            )
+          ) : filteredSchemes.length > 0 ? (
+            filteredSchemes.map(scheme => <SchemeCard key={scheme._id || scheme.scheme_id} scheme={scheme} />)
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>
@@ -117,125 +162,45 @@ const SchemesScreen = () => {
           )}
         </ScrollView>
       </HeroContainer>
+        </View>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  heroScroll: {
-    flex: 1,
-  },
-  heroScrollContent: {
-    paddingBottom: theme.spacing.m,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#B7DBE8',
-    borderRadius: 16,
-    paddingLeft: 12,
-    paddingRight: 7,
-    minHeight: 54,
-    marginBottom: theme.spacing.m,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 15,
-    lineHeight: 20,
-    color: theme.colors.textPrimary,
-    fontWeight: '500',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-  },
-  searchButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: theme.colors.textPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#B7DBE8',
-  },
-  card: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.m,
-    marginBottom: theme.spacing.m,
-    ...theme.shadows.card,
-  },
-  cardTitle: {
-    ...theme.typography.subHeader,
-    marginBottom: theme.spacing.xs,
-  },
-  cardDesc: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.m,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: theme.spacing.m,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.borderRadius.full,
-    gap: 4,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  deadlineChip: {
-    backgroundColor: '#FFF6EA',
-    borderWidth: 1,
-    borderColor: '#FFE1B3',
-  },
-  deadlineLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#A56500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  deadlineValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  applyRow: {
-    alignItems: 'flex-end',
-  },
-  applyLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  applyText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  emptyState: {
-    padding: theme.spacing.xxl,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: theme.colors.textSecondary,
-    fontSize: 15,
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: theme.colors.primary },
+  heroScroll: { flex: 1 },
+  heroScrollContent: { paddingBottom: theme.spacing.l, paddingHorizontal: theme.spacing.m },
+  bodyContainer: { flex: 1, marginTop: theme.spacing.s, marginHorizontal: theme.spacing.s, marginBottom: theme.spacing.s },
+  body: { flex: 1, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, backgroundColor: theme.colors.background, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#B7DBE8', borderRadius: 28, paddingLeft: 16, paddingRight: 16, minHeight: 56, marginBottom: theme.spacing.m, marginHorizontal: theme.spacing.s, },
+  searchInput: { flex: 1, height: 40, fontSize: 15, lineHeight: 20, color: theme.colors.textPrimary, fontWeight: '500', includeFontPadding: false, textAlignVertical: 'center' },
+  searchButton: { width: 38, height: 38, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: theme.colors.textPrimary, alignItems: 'center', justifyContent: 'center', backgroundColor: '#B7DBE8' },
+  schemeCard: { backgroundColor: theme.colors.white, borderRadius: theme.borderRadius.lg, padding: theme.spacing.m, marginBottom: theme.spacing.m, ...theme.shadows.card, justifyContent: 'space-between' },
+  schemeName: { fontSize: 22, fontWeight: '800', color: theme.colors.textPrimary, marginBottom: theme.spacing.xs },
+  schemeDescription: { fontSize: 15, color: theme.colors.textSecondary, marginBottom: theme.spacing.s },
+  schemeApplyButton: { backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, height: 44, justifyContent: 'center', alignItems: 'center', marginTop: theme.spacing.s },
+  schemeApplyButtonText: { color: theme.colors.white, fontSize: 16, fontWeight: '700' },
+  card: { backgroundColor: theme.colors.white, borderRadius: theme.borderRadius.lg, padding: theme.spacing.m, marginBottom: theme.spacing.m, ...theme.shadows.card },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.xs },
+  cardTitle: { ...theme.typography.subHeader, marginBottom: theme.spacing.xs, flex: 1 },
+  cardDesc: { ...theme.typography.body, color: theme.colors.textSecondary, marginBottom: theme.spacing.m },
+  matchBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E9F8EC', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, gap: 4 },
+  matchText: { fontSize: 13, fontWeight: '700', color: '#2B9D5A' },
+  chipsRow: { flexDirection: 'row', gap: 10, marginBottom: theme.spacing.m },
+  chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.borderRadius.full, gap: 4 },
+  chipText: { fontSize: 12, fontWeight: '600', color: theme.colors.textPrimary },
+  appliedChip: { backgroundColor: theme.colors.badgeSuccessBg, borderWidth: 1, borderColor: '#BFE7CD' },
+  appliedChipText: { fontSize: 12, fontWeight: '700', color: theme.colors.success },
+  deadlineChip: { backgroundColor: '#FFF6EA', borderWidth: 1, borderColor: '#FFE1B3' },
+  deadlineLabel: { fontSize: 11, fontWeight: '700', color: '#A56500', textTransform: 'uppercase', letterSpacing: 0.3 },
+  deadlineValue: { fontSize: 12, fontWeight: '600', color: theme.colors.textPrimary },
+  applyRow: { alignItems: 'flex-end' },
+  applyLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  applyText: { fontSize: 13, fontWeight: 'bold', color: theme.colors.primary },
+  emptyState: { padding: theme.spacing.xxl, alignItems: 'center' },
+  emptyText: { color: theme.colors.textSecondary, fontSize: 15, textAlign: 'center' },
 });
 
 export default SchemesScreen;

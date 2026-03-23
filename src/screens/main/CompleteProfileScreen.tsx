@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: theme.spacing.l,
+    paddingTop: theme.spacing.xl,
     paddingBottom: theme.spacing.m,
     paddingHorizontal: theme.spacing.m,
   },
@@ -105,9 +105,10 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: theme.colors.primary,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
     paddingVertical: 14,
+    ...theme.shadows.button,
   },
   buttonText: {
     color: theme.colors.white,
