@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  Switch,
 } from 'react-native';
 import {
   User,
@@ -41,12 +42,26 @@ const ALL_INTERESTS = [
   { id: 'welfare', label: 'Welfare' },
 ];
 
+const INCOME_OPTIONS = [
+  { id: 'below_1_5', label: 'Below ₹1,50,000' },
+  { id: '1_5_to_3', label: '₹1,50,001 – ₹3,00,000' },
+  { id: '3_to_6', label: '₹3,00,001 – ₹6,00,000' },
+  { id: '6_to_10', label: '₹6,00,001 – ₹10,00,000' },
+  { id: 'above_10', label: 'Above ₹10,00,000' },
+];
+
 const ProfileScreen = ({ navigation }: { navigation: any }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEditingInterests, setIsEditingInterests] = useState(false);
   const [editInterests, setEditInterests] = useState<string[]>([]);
   const [savingInterests, setSavingInterests] = useState(false);
+  const [isEditingEligibility, setIsEditingEligibility] = useState(false);
+  const [editIncomeRange, setEditIncomeRange] = useState<string>('');
+  const [editPwdStatus, setEditPwdStatus] = useState<boolean>(false);
+  const [editBplStatus, setEditBplStatus] = useState<boolean>(false);
+  const [editScstStatus, setEditScstStatus] = useState<boolean>(false);
+  const [savingEligibility, setSavingEligibility] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -93,6 +108,34 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     setEditInterests(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id],
     );
+  };
+
+  const openEditEligibility = () => {
+    setEditIncomeRange(user?.incomeRange || '');
+    setEditPwdStatus(user?.pwdStatus || false);
+    setEditBplStatus(user?.bplStatus || false);
+    setEditScstStatus(user?.scstStatus || false);
+    setIsEditingEligibility(true);
+  };
+
+  const saveEligibility = async () => {
+    setSavingEligibility(true);
+    try {
+      const res = await authApi.updateProfile({
+        incomeRange: editIncomeRange,
+        pwdStatus: editPwdStatus,
+        bplStatus: editBplStatus,
+        scstStatus: editScstStatus,
+      });
+      setUser(res.user);
+      await saveUserProfile(res.user);
+      setIsEditingEligibility(false);
+      Alert.alert('Saved', 'Your eligibility details have been updated.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update eligibility details.');
+    } finally {
+      setSavingEligibility(false);
+    }
   };
 
   const saveInterests = async () => {
@@ -213,6 +256,53 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
           )}
         </View>
 
+        {/* Eligibility Details Card — with edit button */}
+        <View style={styles.card}>
+          <View style={styles.interestHeaderRow}>
+            <Text style={styles.sectionTitle}>Eligibility Details</Text>
+            <TouchableOpacity
+              style={styles.editInterestButton}
+              activeOpacity={0.7}
+              onPress={openEditEligibility}
+            >
+              <Edit3 size={14} color={theme.colors.primary} />
+              <Text style={styles.editInterestText}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.eligibilityContent}>
+            {user?.incomeRange ? (
+              <View style={styles.eligibilityRow}>
+                <Text style={styles.eligibilityLabel}>Annual Income:</Text>
+                <Text style={styles.eligibilityValue}>
+                  {INCOME_OPTIONS.find(o => o.id === user.incomeRange)?.label || user.incomeRange}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.noEligibilityText}>Income information not set</Text>
+            )}
+            <View style={styles.eligibilityStatusRow}>
+              <View style={styles.statusItem}>
+                <Text style={styles.statusLabel}>PwD Certificate</Text>
+                <Text style={[styles.statusValue, user?.pwdStatus && styles.statusYes]}>
+                  {user?.pwdStatus ? 'Yes' : 'No'}
+                </Text>
+              </View>
+              <View style={styles.statusItem}>
+                <Text style={styles.statusLabel}>BPL Card</Text>
+                <Text style={[styles.statusValue, user?.bplStatus && styles.statusYes]}>
+                  {user?.bplStatus ? 'Yes' : 'No'}
+                </Text>
+              </View>
+              <View style={styles.statusItem}>
+                <Text style={styles.statusLabel}>SC/ST</Text>
+                <Text style={[styles.statusValue, user?.scstStatus && styles.statusYes]}>
+                  {user?.scstStatus ? 'Yes' : 'No'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* FEEDBACK CARD */}
         <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Feedback')}>
           <Text style={styles.cardTitle}>Give Feedback</Text>
@@ -230,7 +320,12 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
 
         {/* ACTIONS */}
         <View style={styles.card}>
-          <ActionButton icon={HelpCircle} label="Help & Support" color={theme.colors.primary} />
+          <ActionButton
+            icon={HelpCircle}
+            label="Contact Us"
+            color={theme.colors.primary}
+            onPress={() => navigation.navigate('ContactUs')}
+          />
           <View style={styles.divider} />
           <ActionButton
             icon={LogOut}
@@ -298,6 +393,115 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Edit Eligibility Modal */}
+      <Modal
+        visible={isEditingEligibility}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsEditingEligibility(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.eligibilityModalCard]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Eligibility Details</Text>
+              <TouchableOpacity onPress={() => setIsEditingEligibility(false)} style={styles.modalClose}>
+                <X size={20} color={theme.colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.eligibilityModalScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalSubtitle}>
+                Update your eligibility information to find relevant schemes.
+              </Text>
+
+              {/* Income Range */}
+              <View style={styles.eligibilityFormGroup}>
+                <Text style={styles.eligibilityFormLabel}>Annual Household Income</Text>
+                <View style={styles.incomeOptionsGrid}>
+                  {INCOME_OPTIONS.map(option => {
+                    const isSelected = editIncomeRange === option.id;
+                    return (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[styles.incomeOption, isSelected && styles.incomeOptionSelected]}
+                        onPress={() => setEditIncomeRange(option.id)}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[styles.incomeOptionText, isSelected && styles.incomeOptionTextSelected]}>
+                          {option.label}
+                        </Text>
+                        {isSelected && <Text style={styles.incomeCheck}>✓</Text>}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* PWD Status Toggle */}
+              <View style={styles.toggleFormGroup}>
+                <View style={styles.toggleLabelRow}>
+                  <View style={styles.toggleLabelCol}>
+                    <Text style={styles.toggleLabel}>Disability Certificate (PwD)</Text>
+                    <Text style={styles.toggleDesc}>Do you have a disability certificate?</Text>
+                  </View>
+                  <Switch
+                    value={editPwdStatus}
+                    onValueChange={setEditPwdStatus}
+                    trackColor={{ false: '#E0E0E0', true: `${theme.colors.primary}40` }}
+                    thumbColor={editPwdStatus ? theme.colors.primary : '#F0F0F0'}
+                  />
+                </View>
+              </View>
+
+              {/* BPL Status Toggle */}
+              <View style={styles.toggleFormGroup}>
+                <View style={styles.toggleLabelRow}>
+                  <View style={styles.toggleLabelCol}>
+                    <Text style={styles.toggleLabel}>BPL Card</Text>
+                    <Text style={styles.toggleDesc}>Does your family hold a BPL card?</Text>
+                  </View>
+                  <Switch
+                    value={editBplStatus}
+                    onValueChange={setEditBplStatus}
+                    trackColor={{ false: '#E0E0E0', true: `${theme.colors.primary}40` }}
+                    thumbColor={editBplStatus ? theme.colors.primary : '#F0F0F0'}
+                  />
+                </View>
+              </View>
+
+              {/* SCST Status Toggle */}
+              <View style={styles.toggleFormGroup}>
+                <View style={styles.toggleLabelRow}>
+                  <View style={styles.toggleLabelCol}>
+                    <Text style={styles.toggleLabel}>SC/ST Category</Text>
+                    <Text style={styles.toggleDesc}>Do you belong to SC/ST category?</Text>
+                  </View>
+                  <Switch
+                    value={editScstStatus}
+                    onValueChange={setEditScstStatus}
+                    trackColor={{ false: '#E0E0E0', true: `${theme.colors.primary}40` }}
+                    thumbColor={editScstStatus ? theme.colors.primary : '#F0F0F0'}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.modalSaveButton, savingEligibility && { opacity: 0.7 }]}
+              onPress={saveEligibility}
+              disabled={savingEligibility}
+              activeOpacity={0.85}
+            >
+              {savingEligibility ? (
+                <ActivityIndicator size="small" color={theme.colors.white} />
+              ) : (
+                <Text style={styles.modalSaveText}>Save Changes</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -314,7 +518,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: theme.spacing.s,
     marginHorizontal: theme.spacing.s,
-    marginBottom: theme.spacing.s,
+    marginBottom: theme.spacing.l,
   },
   body: {
     flex: 1,
@@ -331,7 +535,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   bodyScroll: { flex: 1 },
-  bodyScrollContent: { padding: theme.spacing.m, paddingBottom: theme.spacing.xl },
+  bodyScrollContent: { padding: theme.spacing.m, paddingBottom: theme.spacing.xxl },
   card: { backgroundColor: theme.colors.white, borderRadius: theme.borderRadius.lg, padding: theme.spacing.m, marginBottom: theme.spacing.m, ...theme.shadows.card },
   sectionTitle: { ...theme.typography.subHeader, marginBottom: theme.spacing.m },
   cardTitle: { ...theme.typography.subHeader, marginBottom: theme.spacing.xs },
@@ -370,6 +574,33 @@ const styles = StyleSheet.create({
   modalCheck: { position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: theme.borderRadius.full, backgroundColor: theme.colors.primary, color: theme.colors.white, textAlign: 'center', lineHeight: 18, fontSize: 11, fontWeight: '700', overflow: 'hidden' },
   modalSaveButton: { backgroundColor: theme.colors.primary, height: 50, borderRadius: theme.borderRadius.md, justifyContent: 'center', alignItems: 'center' },
   modalSaveText: { color: theme.colors.white, fontSize: 16, fontWeight: '700' },
+  // Eligibility Details Card
+  eligibilityContent: { gap: theme.spacing.m },
+  eligibilityRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  eligibilityLabel: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
+  eligibilityValue: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
+  noEligibilityText: { fontSize: 14, color: theme.colors.textSecondary, fontStyle: 'italic' },
+  eligibilityStatusRow: { flexDirection: 'row', justifyContent: 'space-around', gap: theme.spacing.s, marginTop: theme.spacing.s, paddingTop: theme.spacing.s, borderTopWidth: 1, borderTopColor: theme.colors.border },
+  statusItem: { alignItems: 'center', flex: 1 },
+  statusLabel: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 4 },
+  statusValue: { fontSize: 14, fontWeight: '700', color: theme.colors.textSecondary },
+  statusYes: { color: '#27AE60' },
+  // Eligibility Modal
+  eligibilityModalCard: { maxHeight: '85%' },
+  eligibilityModalScroll: { maxHeight: 340, marginBottom: theme.spacing.m },
+  eligibilityFormGroup: { marginBottom: theme.spacing.l },
+  eligibilityFormLabel: { fontSize: 15, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: theme.spacing.s },
+  incomeOptionsGrid: { gap: theme.spacing.s },
+  incomeOption: { paddingHorizontal: 14, paddingVertical: 12, borderRadius: theme.borderRadius.md, borderWidth: 1.5, borderColor: '#CBD8F1', backgroundColor: '#F4F7FF', position: 'relative', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  incomeOptionSelected: { borderColor: theme.colors.primary, backgroundColor: '#E3EEF9' },
+  incomeOptionText: { fontSize: 14, fontWeight: '600', color: '#5A6280', flex: 1 },
+  incomeOptionTextSelected: { color: theme.colors.primary, fontWeight: '700' },
+  incomeCheck: { width: 18, height: 18, borderRadius: 9, backgroundColor: theme.colors.primary, color: theme.colors.white, textAlign: 'center', fontSize: 11, fontWeight: '700', lineHeight: 18 },
+  toggleFormGroup: { marginBottom: theme.spacing.l, paddingBottom: theme.spacing.m, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  toggleLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  toggleLabelCol: { flex: 1, marginRight: theme.spacing.m },
+  toggleLabel: { fontSize: 15, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
+  toggleDesc: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18 },
 });
 
 export default ProfileScreen;

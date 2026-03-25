@@ -67,8 +67,27 @@ const VerifyScreen = ({ navigation, route }: { navigation: any; route: any }) =>
       await saveToken(response.token);
       await saveUserProfile(response.user);
 
-      // Navigate based on whether user needs onboarding
-      if (response.needsOnboarding) {
+      const occupation = (response?.user?.occupation || '').trim();
+      const interests = Array.isArray(response?.user?.interests)
+        ? response.user.interests
+        : [];
+      const hasOnboardingBasics = occupation.length > 0 && interests.length > 0;
+
+      // First-time users must complete eligibility. If occupation/interests already
+      // exist in voter data, skip occupation step and go directly to eligibility.
+      if (response.needsEligibility) {
+        if (hasOnboardingBasics) {
+          navigation.replace('OnboardingEligibility', {
+            occupation,
+            interests,
+          });
+        } else {
+          navigation.replace('OnboardingOccupation');
+        }
+        return;
+      }
+
+      if (response.needsOnboarding || !hasOnboardingBasics) {
         navigation.replace('OnboardingOccupation');
       } else {
         navigation.replace('MainApp');

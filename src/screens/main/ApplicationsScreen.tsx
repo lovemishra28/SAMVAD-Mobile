@@ -54,23 +54,23 @@ const ApplicationsScreen = () => {
     .map(s => ({
       _id: s._id || s.scheme_id,
       schemeId: s.scheme_id,
-      title: s.scheme_name,
-      description: s.description,
-      benefit_type: s.benefit_type,
-      deadline: s.end_date,
-      eligibility: s.eligibility,
+      title: s.scheme_name && s.scheme_name.trim() ? s.scheme_name : 'Unknown Scheme',
+      description: s.description || 'No description available',
+      benefit_type: s.benefit_type || 'Not specified',
+      deadline: s.end_date || 'No deadline',
+      eligibility: s.eligibility || '',
       status: 'available',
     }));
 
   const appliedItems = applications.map(a => ({
     _id: a._id,
     schemeId: a.schemeId,
-    title: a.schemeName,
-    description: a.schemeDetails?.description || '',
-    benefit_type: a.schemeDetails?.benefit_type || '',
-    deadline: a.schemeDetails?.end_date || '',
-    date: a.appliedAt ? new Date(a.appliedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-    status: a.status,
+    title: a.schemeName && a.schemeName.trim() ? a.schemeName : (a.schemeDetails?.scheme_name || 'Unknown Scheme'),
+    description: a.schemeDetails?.description || 'No description available',
+    benefit_type: a.schemeDetails?.benefit_type || 'Not specified',
+    deadline: a.schemeDetails?.end_date || 'No deadline',
+    date: a.appliedAt ? new Date(a.appliedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
+    status: a.status || 'pending',
   }));
 
   const data = activeTab === 'Applied' ? appliedItems : availableSchemes;
@@ -79,15 +79,21 @@ const ApplicationsScreen = () => {
   );
 
   const openSchemeDetails = (item: any) => {
+    // Validate item before navigation
+    if (!item || !item.schemeId) {
+      console.warn('[ApplicationsScreen] Invalid item passed to openSchemeDetails', item);
+      return;
+    }
+    
     navigation.navigate('SchemeDetails', {
       scheme: {
-        id: item.schemeId,
-        title: item.title,
-        desc: item.description,
+        id: item.schemeId || undefined,
+        title: item.title || 'Scheme Details',
+        desc: item.description || '',
         schemeId: item.schemeId,
-        deadline: item.deadline,
-        eligibility: item.eligibility,
-        benefit_type: item.benefit_type,
+        deadline: item.deadline || undefined,
+        eligibility: item.eligibility || '',
+        benefit_type: item.benefit_type || '',
       },
     });
   };
@@ -190,10 +196,10 @@ const ApplicationsScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.primary },
-  bodyContainer: { flex: 1, marginTop: theme.spacing.s, marginHorizontal: theme.spacing.s, marginBottom: theme.spacing.s },
+  bodyContainer: { flex: 1, marginTop: theme.spacing.s, marginHorizontal: theme.spacing.s, marginBottom: theme.spacing.l },
   body: { flex: 1, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, backgroundColor: theme.colors.background, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
   heroScroll: { flex: 1 },
-  heroScrollContent: { paddingBottom: theme.spacing.l, paddingHorizontal: theme.spacing.m },
+  heroScrollContent: { paddingBottom: theme.spacing.xxl, paddingHorizontal: theme.spacing.m },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#B7DBE8', borderRadius: 28, paddingLeft: 16, paddingRight: 16, minHeight: 56, marginBottom: theme.spacing.m, marginHorizontal: theme.spacing.s, },
   searchInput: { flex: 1, height: 40, fontSize: 15, color: theme.colors.textPrimary, fontWeight: '500' },
   searchButton: { width: 38, height: 38, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: theme.colors.textPrimary, alignItems: 'center', justifyContent: 'center', backgroundColor: '#B7DBE8' },

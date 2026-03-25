@@ -10,6 +10,7 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Phone } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
@@ -41,15 +42,17 @@ const LoginScreen = ({ navigation }: { navigation: any }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.wrapper}
     >
-      <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
 
       {/* Top branded header */}
       <View style={styles.header}>
-        <View style={styles.headerEmblem}>
-          <Text style={styles.headerEmblemText}>S</Text>
-        </View>
+        <Image 
+          source={require('../../assets/samvad_logo.png')} 
+          style={styles.logoImage} 
+          resizeMode="contain"
+        />
         <Text style={styles.headerTitle}>SAMVAD</Text>
-        <Text style={styles.headerSubtitle}>Citizen Services Portal</Text>
+        {/* <Text style={styles.headerSubtitle}>Citizen Services Portal</Text> */}
       </View>
 
       {/* Bottom white card */}
@@ -99,47 +102,43 @@ const LoginScreen = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flex: 4,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: theme.spacing.xl,
   },
-  headerEmblem: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 90,
+    height: 90,
     marginBottom: theme.spacing.m,
   },
-  headerEmblemText: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: theme.colors.white,
-    letterSpacing: 3,
+    fontSize: 32,
+    fontWeight: '900',
+    color: theme.colors.textPrimary,
+    letterSpacing: 2,
   },
   headerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
   },
   card: {
     flex: 6,
-    backgroundColor: theme.colors.white,
+    backgroundColor: '#F7F9FC',
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
     paddingHorizontal: theme.spacing.l,
     paddingTop: theme.spacing.xl,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
   cardHeading: {
     fontSize: 22,

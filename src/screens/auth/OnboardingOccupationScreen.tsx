@@ -21,6 +21,7 @@ const CATEGORIES = [
   { id: 'Farmer', label: 'Farmer', iconText: 'FA' },
   { id: 'Student', label: 'Student', iconText: 'ST' },
   { id: 'Senior Citizen', label: 'Senior Citizen', iconText: 'SC' },
+  { id: 'Government Employee', label: 'Govt. Employee', iconText: 'GE' },
 ];
 
 const INTERESTS = [
@@ -72,22 +73,22 @@ const OnboardingOccupationScreen = ({ navigation }: { navigation: any }) => {
         return;
       }
 
-      setSubmitMessage('Saving your profile...');
+      setSubmitMessage('Preparing eligibility check...');
       setIsSubmitting(true);
 
       try {
-        const res = await authApi.updateProfile({
-          occupation: selectedOccupation,
-          interests: selectedInterests,
-        });
-        await saveUserProfile(res.user);
-        setSubmitMessage('Done. Taking you to your dashboard...');
+        // Navigate to eligibility screen with occupation + interests
+        setSubmitMessage('Almost there...');
         setTimeout(() => {
-          navigation.replace('MainApp');
-        }, 650);
+          setIsSubmitting(false);
+          navigation.replace('OnboardingEligibility', {
+            occupation: selectedOccupation,
+            interests: selectedInterests,
+          });
+        }, 400);
       } catch (error: any) {
         setIsSubmitting(false);
-        Alert.alert('Error', error.message || 'Failed to save profile. Please try again.');
+        Alert.alert('Error', error.message || 'Something went wrong. Please try again.');
       }
       return;
     }

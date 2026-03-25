@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Animated, StatusBar, ActivityIndicator, Image } from 'react-native';
 import { theme } from '../../theme/theme';
 import { getToken, authApi, clearAuth } from '../../api/client';
 
@@ -53,7 +53,7 @@ const StarterScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
 
       <Animated.View
         style={[
@@ -61,26 +61,23 @@ const StarterScreen = ({ navigation }: { navigation: any }) => {
           { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
         ]}
       >
-        {/* Logo emblem circle */}
-        <View style={styles.emblem}>
-          <Text style={styles.emblemText}>S</Text>
-        </View>
+        <Image 
+          source={require('../../assets/samvad_logo.png')} 
+          style={styles.logoImage} 
+          resizeMode="contain"
+        />
 
         <Text style={styles.logoText}>SAMVAD</Text>
-        <Text style={styles.tagline}>सम्वाद — आपकी आवाज़, सरकार तक</Text>
       </Animated.View>
 
-      {checking && (
+      {checking ? (
         <ActivityIndicator
           size="small"
-          color="rgba(255,255,255,0.7)"
+          color={theme.colors.primary}
           style={{ position: 'absolute', bottom: 80 }}
         />
-      )}
+      ) : null}
 
-      <Animated.Text style={[styles.footerText, { opacity: fadeAnim }]}>
-        Empowering Citizens
-      </Animated.Text>
     </View>
   );
 };
@@ -90,31 +87,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#FFFFFF',
   },
   logoContainer: {
     alignItems: 'center',
   },
-  emblem: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: theme.colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 140,
+    height: 140,
     marginBottom: theme.spacing.l,
   },
-  emblemText: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
   logoText: {
-    fontSize: 38,
-    fontWeight: 'bold',
-    color: theme.colors.white,
-    letterSpacing: 4,
-    marginBottom: theme.spacing.s,
+    fontSize: 42,
+    fontWeight: '900', // extra bold
+    color: theme.colors.textPrimary,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   tagline: {
     fontSize: 14,

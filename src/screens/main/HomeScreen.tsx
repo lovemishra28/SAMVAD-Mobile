@@ -36,6 +36,9 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Track already-applied scheme IDs for UI state
+  const appliedSchemeIds = new Set(applications.map(app => app.schemeId));
+
   const loadData = useCallback(async () => {
     try {
       const user = await getCachedUser();
@@ -87,8 +90,8 @@ const HomeScreen = () => {
 
   // Compute stats
   const activeSchemeCount = recommendations.length;
-  const appliedCount = applications.filter(a => a.status === 'applied').length;
-  const pendingCount = applications.filter(a => a.status === 'pending').length;
+  // Let "Applied" reflect all applications they've submitted regardless of pending/applied backend status since we don't have pending concept for voters
+  const appliedCount = applications.length;
 
   const stats = [
     {
@@ -102,12 +105,6 @@ const HomeScreen = () => {
       label: 'Applied',
       value: String(appliedCount),
       color: theme.colors.success,
-    },
-    {
-      icon: Clock,
-      label: 'Pending',
-      value: String(pendingCount),
-      color: theme.colors.warning,
     },
   ];
 
@@ -249,36 +246,50 @@ const HomeScreen = () => {
                 </Text>
               </View>
             ) : (
-              recommendations.map((reco, idx) => (
-                <View key={`reco_${idx}`} style={styles.schemeCard}>
-                  <View style={styles.schemeContent}>
-                    <Text style={styles.schemeName}>{reco.schemeName}</Text>
-                    {reco.schemeDescription ? (
-                      <Text style={styles.schemeDescription} numberOfLines={2}>
-                        {reco.schemeDescription}
-                      </Text>
-                    ) : null}
-                  </View>
+              recommendations.map((reco, idx) => {
+                const isApplied = appliedSchemeIds.has(reco.schemeId);
+                return (
+                  <View key={`reco_${idx}`} style={styles.schemeCard}>
+                    <View style={styles.schemeContent}>
+                      <Text style={styles.schemeName}>{reco.schemeName}</Text>
+                      {reco.schemeDescription ? (
+                        <Text style={styles.schemeDescription} numberOfLines={2}>
+                          {reco.schemeDescription}
+                        </Text>
+                      ) : null}
+                    </View>
 
-                  <View style={styles.schemeActionRow}>
-                    <TouchableOpacity
-                      style={styles.schemeApplyButton}
-                      activeOpacity={0.8}
-                      onPress={() =>
-                        handleOpenScheme({
-                          title: reco.schemeName,
-                          desc: reco.schemeDescription || '',
-                          schemeId: reco.schemeId || '',
-                        })
-                      }
-                    >
-                      <Text style={styles.schemeApplyButtonText}>
-                        View & Apply
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={styles.schemeActionRow}>
+                      {isApplied ? (
+                        <View style={styles.alreadyAppliedWrap}>
+                          <Text style={styles.alreadyAppliedText}>Already Applied</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.schemeApplyButton}
+                          activeOpacity={0.8}
+                          onPress={() =>
+                            handleOpenScheme({
+                              title: reco.schemeName || reco.scheme_name,
+                              desc: reco.schemeDescription || reco.description,
+                              schemeId: reco.schemeId || reco.scheme_id,
+                              eligibility: reco.eligibility,
+                              benefit_type: reco.benefit_type,
+                              deadline: reco.end_date,
+                              target_occupation: reco.target_occupation,
+                              target_interest: reco.target_interest,
+                            })
+                          }
+                        >
+                          <Text style={styles.schemeApplyButtonText}>
+                            View & Apply
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
-                </View>
-              ))
+                );
+              })
           )}
         </View>
       </ScrollView>
@@ -416,7 +427,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: -12,
     marginHorizontal: theme.spacing.s,
-    marginBottom: theme.spacing.s,
+    marginBottom: theme.spacing.l,
     borderRadius: theme.borderRadius.xl,
     backgroundColor: theme.colors.background,
     overflow: 'hidden',
@@ -424,6 +435,7 @@ const styles = StyleSheet.create({
   bodyScroll: {
     flex: 1,
     padding: theme.spacing.m,
+    paddingBottom: theme.spacing.xxl,
   },
   statsRow: {
     flexDirection: 'row',
@@ -471,22 +483,25 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.m,
   },
   recommendationSection: {
-    borderWidth: 1,
-    borderColor: '#DDE3F6',
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.background,
-    padding: theme.spacing.m,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    borderRadius: theme.borderRadius.xl,
+    backgroundColor: 'transparent',
+    padding: 0,
     marginBottom: theme.spacing.l,
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   schemeCard: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.m,
-    paddingVertical: theme.spacing.s,
-    marginBottom: theme.spacing.s,
+    padding: theme.spacing.m,
+    marginBottom: theme.spacing.m,
     borderWidth: 1,
-    borderColor: '#EDEFFA',
-    minHeight: 120,
+    borderColor: '#E6EBF7',
+    width: '100%',
+    alignSelf: 'stretch',
     ...theme.shadows.card,
     justifyContent: 'space-between',
   },
@@ -540,6 +555,8 @@ const styles = StyleSheet.create({
   badgeText: { display: 'none' },
   benefitBadge: { display: 'none' },
   benefitText: { display: 'none' },
+  alreadyAppliedWrap: { width: '100%', paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.badgeSuccessBg, borderWidth: 1, borderColor: '#BFE7CD', alignItems: 'center', justifyContent: 'center' },
+  alreadyAppliedText: { color: theme.colors.success, fontWeight: '700' },
   schemeCardBottom: { display: 'none' },
   deadlineWrap: { display: 'none' },
   deadlineText: { display: 'none' },

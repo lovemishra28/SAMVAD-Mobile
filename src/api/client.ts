@@ -91,7 +91,14 @@ export const authApi = {
   getMe: () =>
     api('/api/auth/me', { requireAuth: true }),
 
-  updateProfile: (data: { occupation?: string; interests?: string[] }) =>
+  updateProfile: (data: {
+    occupation?: string;
+    interests?: string[];
+    incomeRange?: string;
+    pwdStatus?: boolean;
+    bplStatus?: boolean;
+    scstStatus?: boolean;
+  }) =>
     api('/api/auth/update-profile', { method: 'PUT', requireAuth: true, body: data }),
 };
 
@@ -116,6 +123,7 @@ export const mobileApi = {
     applicantMobileNumber?: string;
     applicantAddress?: string;
     schemeWebsiteLink?: string;
+    aadhaarNumber?: string;
   }) =>
     api('/api/mobile/apply', {
       method: 'POST',
@@ -128,4 +136,21 @@ export const mobileApi = {
 
   getMyRecommendations: () =>
     api('/api/mobile/my-recommendations', { requireAuth: true }),
+
+  submitFeedback: (payload: {
+    type: 'scheme_feedback' | 'suggestion';
+    schemeId?: string;
+    schemeName?: string;
+    rating?: number;
+    note?: string;
+    suggestionText?: string;
+  }) =>
+    api('/api/mobile/feedback', {
+      method: 'POST',
+      requireAuth: true,
+      body: payload,
+    }),
+
+  getMyFeedback: () =>
+    api('/api/mobile/feedback/my', { requireAuth: true }),
 };
