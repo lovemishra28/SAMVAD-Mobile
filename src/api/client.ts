@@ -3,9 +3,12 @@ import { Platform } from 'react-native';
 
 // Android emulator uses 10.0.2.2 to reach host localhost
 // iOS simulator uses localhost directly
-const BASE_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:5000'
-  : 'http://localhost:5000';
+// const BASE_URL = Platform.OS === 'android'
+//   ? 'http://10.0.2.2:5000'
+//   : 'http://localhost:5000';
+
+// The remote backend deployed on Render
+const BASE_URL = 'https://samvad-backend-p18q.onrender.com';
 
 const TOKEN_KEY = 'samvad_jwt_token';
 const USER_KEY = 'samvad_user_profile';
